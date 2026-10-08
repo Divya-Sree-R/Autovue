@@ -1,17 +1,13 @@
 # AutoVue: Deep Learning-Based Indian ANPR Using Vehicle Tracking, OCR, and Multi-Frame Video Analysis
 
 <p align="center">
-  <b>Vehicle Detection · Plate Localization · Tracking · OCR · Multi-Frame Recognition</b>
-</p>
 
-<p align="center">
-
-  <a href="https://www.python.org/">
+  <a href="https://github.com/Divya-Sree-R/Autovue/tree/main/src">
     <img alt="Python 3.12"
          src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white">
   </a>
 
-  <a href="https://pytorch.org/">
+  <a href="https://github.com/Divya-Sree-R/Autovue/blob/main/src/detection/benchmark_detectors.py">
     <img alt="PyTorch"
          src="https://img.shields.io/badge/PyTorch-GPU%20Inference-EE4C2C?logo=pytorch&logoColor=white">
   </a>
@@ -26,33 +22,14 @@
          src="https://img.shields.io/badge/BoT--SORT-Vehicle%20Tracking-6A5ACD">
   </a>
 
-  <a href="https://www.paddleocr.ai/">
+  <a href="https://github.com/Divya-Sree-R/Autovue/blob/main/outputs/M23_ocr_final/M23C_final_ocr_study.txt">
     <img alt="PaddleOCR"
          src="https://img.shields.io/badge/PaddleOCR-PP--OCRv5-0A64FF">
   </a>
 
-  <a href="https://opencv.org/">
+  <a href="https://github.com/Divya-Sree-R/Autovue/blob/main/src/tracking/m25b_final_road_tracking.py">
     <img alt="OpenCV"
          src="https://img.shields.io/badge/OpenCV-Video%20Processing-5C3EE8?logo=opencv&logoColor=white">
-  </a>
-
-</p>
-
-<p align="center">
-
-  <a href="./outputs/M23_ocr_final">
-    <img alt="OCR Study"
-         src="https://img.shields.io/badge/OCR-Frozen%20Evaluation-2E8B57">
-  </a>
-
-  <a href="./outputs/M25_final_road_eval">
-    <img alt="Temporal Consensus"
-         src="https://img.shields.io/badge/Multi--Frame-Temporal%20Consensus-008B8B">
-  </a>
-
-  <a href="./outputs/M25_final_road_eval">
-    <img alt="Research Status"
-         src="https://img.shields.io/badge/Research%20Pipeline-M25E%20Complete-0A8F8F">
   </a>
 
 </p>
@@ -100,14 +77,14 @@ The goal is not only to produce a plate string, but also to indicate **how stron
 
 Indian road-video ANPR is difficult because number plates may be:
 
-- small or distant,
-- motion-blurred,
-- compressed by video encoding,
-- tilted or perspective-distorted,
-- partially occluded,
-- visible for only a few frames,
-- affected by lighting, glare, stickers, text and background interference,
-- arranged in different one-line or two-line layouts.
+- Small or distant,
+- Motion-blurred,
+- Compressed by video encoding,
+- Tilted or perspective-distorted,
+- Partially occluded,
+- Visible for only a few frames,
+- Affected by lighting, glare, stickers, text and background interference,
+- Arranged in different one-line or two-line layouts.
 
 A single poor frame can cause a complete identity error.
 
@@ -133,13 +110,13 @@ AutoVue is **not a reproduction** of that paper.
 It adapts the research problem toward:
 
 - Indian registration plates,
-- road video,
-- leakage-safe evaluation,
-- controlled detector comparison,
+- Road video,
+- Leakage-safe evaluation,
+- Controlled detector comparison,
 - OCR engine evaluation,
 - Indian registration rules,
-- repeated-frame evidence,
-- explicit uncertainty/review states.
+- Repeated-frame evidence,
+- Explicit uncertainty/review states.
 
 ---
 
@@ -246,6 +223,44 @@ YOLO11s improved strict localization by only about **0.65 percentage points mAP@
 - Ultralytics `optimizer=auto` selected MuSGD (`lr=0.01`, `momentum=0.9`) for the main benchmark
 
 RT-DETR-L was explored as a cross-architecture alternative but was not part of the completed controlled benchmark.
+
+---
+
+### Training Losses and Learning Curves
+
+All YOLO detector experiments were monitored across training and validation using
+three primary loss components:
+
+| Loss | Purpose | Interpretation |
+|---|---|---|
+| **Box Loss** | Measures bounding-box localization error | Lower values indicate better plate localization |
+| **Classification Loss** | Measures class prediction error | Lower values indicate more confident/correct class predictions |
+| **DFL Loss** | Distribution Focal Loss used for bounding-box regression | Lower values indicate more precise box boundary estimation |
+
+The losses were recorded for every training epoch together with validation
+Precision, Recall, mAP@50 and mAP@50–95.
+
+#### YOLO11n Training Evidence
+
+- [Training + Validation Loss Curves](./experiments/detector_benchmark/yolo11n/results.png)
+- [Raw Epoch-wise Training Metrics](./experiments/detector_benchmark/yolo11n/results.csv)
+- [Precision Curve](./experiments/detector_benchmark/yolo11n/BoxP_curve.png)
+- [Recall Curve](./experiments/detector_benchmark/yolo11n/BoxR_curve.png)
+- [F1 Curve](./experiments/detector_benchmark/yolo11n/BoxF1_curve.png)
+- [Precision–Recall Curve](./experiments/detector_benchmark/yolo11n/BoxPR_curve.png)
+- [Confusion Matrix](./experiments/detector_benchmark/yolo11n/confusion_matrix.png)
+
+The loss curves were used to inspect convergence and training behaviour,
+while detector selection was based primarily on held-out detection metrics
+and computational efficiency rather than training loss alone.
+
+#### Complete Detector Training Evidence
+
+| Model | Training/Loss Curves | Raw Metrics | F1 Curve | PR Curve |
+|---|---|---|---|---|
+| YOLOv8n | [results.png](./experiments/detector_benchmark/yolov8n/results.png) | [results.csv](./experiments/detector_benchmark/yolov8n/results.csv) | [F1](./experiments/detector_benchmark/yolov8n/BoxF1_curve.png) | [PR](./experiments/detector_benchmark/yolov8n/BoxPR_curve.png) |
+| **YOLO11n** | [results.png](./experiments/detector_benchmark/yolo11n/results.png) | [results.csv](./experiments/detector_benchmark/yolo11n/results.csv) | [F1](./experiments/detector_benchmark/yolo11n/BoxF1_curve.png) | [PR](./experiments/detector_benchmark/yolo11n/BoxPR_curve.png) |
+| YOLO11s | [results.png](./experiments/detector_benchmark/yolo11s/results.png) | [results.csv](./experiments/detector_benchmark/yolo11s/results.csv) | [F1](./experiments/detector_benchmark/yolo11s/BoxF1_curve.png) | [PR](./experiments/detector_benchmark/yolo11s/BoxPR_curve.png) |
 
 ---
 
@@ -601,6 +616,122 @@ Question: *From raw road video, does the complete system return the correct regi
 **Not yet finally measured.**
 
 This requires M25F human GT and M25G final end-to-end evaluation.
+
+---
+
+## Complete Experimental Evaluation
+
+AutoVue was evaluated at multiple independent levels because detector quality,
+OCR quality and complete road-video ANPR quality represent different problems.
+
+### A. Plate Detector — Leakage-Safe NPDS Test
+
+| Model | Precision | Recall | F1 | mAP@50 | mAP@50–95 |
+|---|---:|---:|---:|---:|---:|
+| YOLOv8n | 94.24% | 95.90% | 95.06% | 96.25% | 67.07% |
+| **YOLO11n** | **95.44%** | 96.21% | **95.82%** | **96.66%** | 69.98% |
+| YOLO11s | 95.27% | **96.25%** | 95.76% | 96.37% | **70.63%** |
+
+YOLO11n was selected because it provided the preferred balance between
+detection quality, parameter count, model size and inference latency.
+
+---
+
+### B. Detector Efficiency
+
+| Model | Inference | Parameters | Model Size | Peak VRAM |
+|---|---:|---:|---:|---:|
+| YOLOv8n | **2.99 ms** | 3.16M | 5.96 MB | **1.32 GB** |
+| **YOLO11n** | 3.67 ms | **2.62M** | **5.22 MB** | 1.49 GB |
+| YOLO11s | 7.38 ms | 9.46M | 18.29 MB | 2.67 GB |
+
+---
+
+### C. Real-Road Detector Robustness — M18
+
+Human-reviewed frames: **146**
+
+| Metric | Result |
+|---|---:|
+| Visible plates | 57 |
+| True Positives | 19 |
+| False Positives | 8 |
+| False Negatives | 38 |
+| Precision | 70.37% |
+| Recall | 33.33% |
+| F1 | 45.24% |
+
+[View M18 evaluation summary](./outputs/M18_real_road_eval/M18C_summary.txt)
+
+This experiment showed that strong leakage-safe dataset metrics did not
+automatically translate to strong road-domain recall.
+
+### D. OCR Engine Comparison — DEV
+
+| Method | Exact Match | Accuracy | CER |
+|---|---:|---:|---:|
+| EasyOCR | 0 / 26 | 0.00% | 77.43% |
+| PaddleOCR | 2 / 26 | 7.69% | 67.32% |
+| PaddleOCR + Indian Parser | 6 / 26 | 23.08% | 63.81% |
+| PaddleOCR + Parser + Orientation Rescue | **8 / 26** | **30.77%** | **53.31%** |
+
+---
+
+### E. Frozen OCR — Held-Out TEST
+
+| Metric | Result |
+|---|---:|
+| Verified readable crops | 14 |
+| Exact matches | 9 / 14 |
+| Exact-match accuracy | **64.29%** |
+| Character Error Rate | **31.43%** |
+| Mean adaptive latency | 122.58 ms |
+| Orientation search triggered | 8 / 14 |
+| Rotated candidate selected | 3 / 14 |
+
+[View frozen OCR study](./outputs/M23_ocr_final/M23C_final_ocr_study.txt)
+
+> This evaluates OCR using ground-truth plate crops. It is not end-to-end
+> road-video ANPR accuracy.
+
+### F. OCR Ablation / Rejected Methods
+
+| Experiment | Exact Accuracy | CER | Decision |
+|---|---:|---:|---|
+| Raw PaddleOCR | 7.69% | 67.32% | Baseline |
+| + Indian Parser | 23.08% | 63.81% | Keep |
+| + Adaptive Orientation | **30.77%** | **53.31%** | Keep |
+| Generic Static Preprocessing | 23.08% | 63.81% | Reject as default |
+| Spatial-Order Rescue | 23.08% | 63.81% | Reject |
+
+Generic static preprocessing also increased mean latency to approximately
+**250.91 ms** without increasing exact DEV recognition.
+
+### G. Frozen Unseen-Road Pipeline — M25
+
+| Stage | Result |
+|---|---:|
+| Video frames | 727 |
+| Raw tracker IDs with plate candidates | 45 |
+| Selected OCR crops | 92 |
+| Conservative clusters | 43 |
+| Parser-valid crop predictions | 15 |
+| Clusters with complete candidates | 8 |
+| Unique selected strings | 6 |
+
+#### Temporal Evidence Results
+
+| Status | Clusters |
+|---|---:|
+| VERIFIED_FULL | 2 |
+| CORROBORATED_FRAGMENT | 2 |
+| NEEDS_REVIEW | 4 |
+| REJECTED | 35 |
+
+[View M25 temporal-consensus results](./outputs/M25_final_road_eval/M25E_temporal_consensus_summary.txt)
+
+> These are evidence-strength outcomes, not final correctness/accuracy labels.
+> M25F human ground truth and M25G end-to-end evaluation remain pending.
 
 ---
 
