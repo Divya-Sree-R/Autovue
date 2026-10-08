@@ -6,12 +6,33 @@ import {
 
 import {
   getJobs,
+  runJob,
   uploadVideo,
 } from "../services/api";
 
 import type {
   AnalysisJob,
 } from "../services/api";
+
+
+const ACTIVE_STATUSES = new Set([
+  "QUEUED",
+  "DETECTING_TRACKING",
+  "OCR_PROCESSING",
+  "TEMPORAL_CONSENSUS",
+  "RENDERING",
+]);
+
+
+const PIPELINE_STAGES = [
+  "UPLOADED",
+  "QUEUED",
+  "DETECTING_TRACKING",
+  "OCR_PROCESSING",
+  "TEMPORAL_CONSENSUS",
+  "RENDERING",
+  "COMPLETED",
+];
 
 
 function formatBytes(
@@ -51,7 +72,18 @@ function formatBytes(
 }
 
 
+function humanStage(
+  status: string
+) {
+  return status.replaceAll(
+    "_",
+    " "
+  );
+}
+
+
 function AnalyzePage() {
+
   const [file, setFile] =
     useState<File | null>(null);
 
@@ -61,52 +93,139 @@ function AnalyzePage() {
   const [uploading, setUploading] =
     useState(false);
 
+  const [
+    startingJobId,
+    setStartingJobId,
+  ] = useState<string | null>(
+    null
+  );
+
   const [error, setError] =
     useState<string | null>(null);
 
-  const [createdJob, setCreatedJob] =
-    useState<AnalysisJob | null>(null);
+  const [
+    createdJob,
+    setCreatedJob,
+  ] = useState<AnalysisJob | null>(
+    null
+  );
 
+
+  // -------------------------------------------------------
+  // Job history + live polling
+  // -------------------------------------------------------
 
   useEffect(() => {
-    getJobs()
-      .then(setJobs)
-      .catch(() => {
-        // Job history is secondary to uploading,
-        // so keep the page usable if listing fails.
-      });
+
+    let cancelled = false;
+
+
+    async function refreshJobs() {
+      try {
+
+        const latest =
+          await getJobs();
+
+        if (cancelled) {
+          return;
+        }
+
+        setJobs(latest);
+
+        setCreatedJob(
+          (current) => {
+
+            if (!current) {
+              return current;
+            }
+
+            return (
+              latest.find(
+                (item) =>
+                  item.job_id ===
+                  current.job_id
+              )
+              ?? current
+            );
+          }
+        );
+
+      } catch {
+        // Keep the page usable if polling
+        // temporarily fails.
+      }
+    }
+
+
+    void refreshJobs();
+
+
+    const timer = window.setInterval(
+      () => {
+        void refreshJobs();
+      },
+      2000
+    );
+
+
+    return () => {
+      cancelled = true;
+
+      window.clearInterval(
+        timer
+      );
+    };
+
   }, []);
 
 
-  const filePreview = useMemo(() => {
-    if (!file) {
-      return null;
-    }
+  const filePreview = useMemo(
+    () => {
 
-    return {
-      name: file.name,
-      size: formatBytes(file.size),
-      type: file.type || "video/mp4",
-    };
-  }, [file]);
+      if (!file) {
+        return null;
+      }
+
+      return {
+        name:
+          file.name,
+
+        size:
+          formatBytes(
+            file.size
+          ),
+
+        type:
+          file.type
+          || "video/mp4",
+      };
+
+    },
+    [file]
+  );
 
 
   function handleFile(
     selected: File | null
   ) {
+
     setError(null);
+
     setCreatedJob(null);
+
 
     if (!selected) {
       setFile(null);
       return;
     }
 
+
     if (
       !selected.name
         .toLowerCase()
         .endsWith(".mp4")
     ) {
+
       setFile(null);
 
       setError(
@@ -116,36 +235,57 @@ function AnalyzePage() {
       return;
     }
 
-    setFile(selected);
+
+    setFile(
+      selected
+    );
   }
 
 
   async function handleUpload() {
-    if (!file || uploading) {
+
+    if (
+      !file
+      || uploading
+    ) {
       return;
     }
 
+
     setUploading(true);
+
     setError(null);
 
+
     try {
+
       const job =
-        await uploadVideo(file);
+        await uploadVideo(
+          file
+        );
 
-      setCreatedJob(job);
 
-      setJobs((previous) => [
-        job,
-        ...previous.filter(
-          (item) =>
-            item.job_id !==
-            job.job_id
-        ),
-      ]);
+      setCreatedJob(
+        job
+      );
+
+
+      setJobs(
+        (previous) => [
+          job,
+          ...previous.filter(
+            (item) =>
+              item.job_id !==
+              job.job_id
+          ),
+        ]
+      );
+
 
       setFile(null);
 
     } catch (err) {
+
       setError(
         err instanceof Error
           ? err.message
@@ -153,8 +293,156 @@ function AnalyzePage() {
       );
 
     } finally {
+
       setUploading(false);
+
     }
+  }
+
+
+  async function handleRun(
+    jobId: string
+  ) {
+
+    if (
+      startingJobId
+      !== null
+    ) {
+      return;
+    }
+
+
+    setStartingJobId(
+      jobId
+    );
+
+    setError(null);
+
+
+    try {
+
+      const job =
+        await runJob(
+          jobId
+        );
+
+
+      setJobs(
+        (previous) =>
+          previous.map(
+            (item) =>
+              item.job_id
+              === job.job_id
+                ? job
+                : item
+          )
+      );
+
+
+      setCreatedJob(
+        (current) =>
+          current?.job_id
+          === job.job_id
+            ? job
+            : current
+      );
+
+    } catch (err) {
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : (
+              "Could not start "
+              + "AutoVue analysis."
+            )
+      );
+
+    } finally {
+
+      setStartingJobId(
+        null
+      );
+
+    }
+  }
+
+
+  function actionForJob(
+    job: AnalysisJob
+  ) {
+
+    if (
+      job.status
+      === "UPLOADED"
+    ) {
+
+      const starting =
+        startingJobId
+        === job.job_id;
+
+
+      return (
+        <button
+          type="button"
+          className="secondary-button"
+          disabled={
+            starting
+          }
+          onClick={() =>
+            void handleRun(
+              job.job_id
+            )
+          }
+        >
+          {starting
+            ? "Starting..."
+            : "Run Analysis"}
+        </button>
+      );
+    }
+
+
+    if (
+      ACTIVE_STATUSES.has(
+        job.status
+      )
+    ) {
+      return (
+        <span>
+          Running…
+        </span>
+      );
+    }
+
+
+    if (
+      job.status
+      === "COMPLETED"
+    ) {
+      return (
+        <span>
+          Complete
+        </span>
+      );
+    }
+
+
+    if (
+      job.status
+      === "FAILED"
+    ) {
+      return (
+        <span>
+          Failed
+        </span>
+      );
+    }
+
+
+    return (
+      <span>—</span>
+    );
   }
 
 
@@ -167,11 +455,14 @@ function AnalyzePage() {
           AutoVue
         </span>
 
-        <h2>Analyze Video</h2>
+        <h2>
+          Analyze Video
+        </h2>
 
         <p>
-          Upload an MP4 road video to create
-          an AutoVue analysis job.
+          Upload an MP4 road video,
+          then run the complete AutoVue
+          recognition pipeline.
         </p>
 
       </header>
@@ -184,11 +475,15 @@ function AnalyzePage() {
           <div className="panel-heading">
 
             <div>
-              <h3>Video Input</h3>
+
+              <h3>
+                Video Input
+              </h3>
 
               <p>
                 MP4 · maximum 500 MB
               </p>
+
             </div>
 
           </div>
@@ -201,25 +496,30 @@ function AnalyzePage() {
               <input
                 type="file"
                 accept="video/mp4,.mp4"
-                onChange={(event) =>
-                  handleFile(
-                    event.target.files?.[0]
-                    ?? null
-                  )
+                onChange={
+                  (event) =>
+                    handleFile(
+                      event.target
+                        .files?.[0]
+                      ?? null
+                    )
                 }
               />
+
 
               <div className="upload-icon">
                 ↑
               </div>
 
+
               <strong>
                 Select road video
               </strong>
 
+
               <span>
-                Choose an MP4 file from
-                this computer
+                Choose an MP4 file
+                from this computer
               </span>
 
             </label>
@@ -230,6 +530,7 @@ function AnalyzePage() {
               <div className="selected-file">
 
                 <div>
+
                   <strong>
                     {filePreview.name}
                   </strong>
@@ -239,13 +540,16 @@ function AnalyzePage() {
                     {" · "}
                     {filePreview.type}
                   </span>
+
                 </div>
+
 
                 <button
                   type="button"
                   className="secondary-button"
-                  onClick={() =>
-                    setFile(null)
+                  onClick={
+                    () =>
+                      setFile(null)
                   }
                 >
                   Remove
@@ -257,9 +561,11 @@ function AnalyzePage() {
 
 
             {error && (
+
               <div className="upload-error">
                 {error}
               </div>
+
             )}
 
 
@@ -267,11 +573,12 @@ function AnalyzePage() {
               type="button"
               className="primary-button"
               disabled={
-                !file ||
-                uploading
+                !file
+                || uploading
               }
               onClick={
-                handleUpload
+                () =>
+                  void handleUpload()
               }
             >
               {uploading
@@ -282,15 +589,19 @@ function AnalyzePage() {
 
             <div className="upload-note">
 
-              Creating a job stores the input
-              video securely in the local
-              AutoVue job workspace.
+              Uploading creates a job
+              without starting GPU
+              inference automatically.
 
               <br />
 
-              Detection, OCR and temporal
-              inference are not started by
-              this upload step yet.
+              After upload, choose
+              <strong>
+                {" Run Analysis "}
+              </strong>
+              to start detection,
+              tracking, OCR and
+              temporal reasoning.
 
             </div>
 
@@ -304,13 +615,15 @@ function AnalyzePage() {
           <div className="panel-heading">
 
             <div>
+
               <h3>
                 Analysis Pipeline
               </h3>
 
               <p>
-                Planned job lifecycle
+                Live job lifecycle
               </p>
+
             </div>
 
           </div>
@@ -318,34 +631,29 @@ function AnalyzePage() {
 
           <div className="workflow-list">
 
-            {[
-              "UPLOADED",
-              "QUEUED",
-              "DETECTING_TRACKING",
-              "OCR_PROCESSING",
-              "TEMPORAL_CONSENSUS",
-              "RENDERING",
-              "COMPLETED",
-            ].map(
+            {PIPELINE_STAGES.map(
               (
                 stage,
                 index
               ) => (
+
                 <div
                   className="workflow-stage"
                   key={stage}
                 >
+
                   <span>
                     {index + 1}
                   </span>
 
                   <strong>
-                    {stage.replaceAll(
-                      "_",
-                      " "
+                    {humanStage(
+                      stage
                     )}
                   </strong>
+
                 </div>
+
               )
             )}
 
@@ -363,14 +671,23 @@ function AnalyzePage() {
           <div className="panel-heading">
 
             <div>
-              <h3>Job Created</h3>
+
+              <h3>
+                Analysis Job
+              </h3>
+
               <p>
-                AutoVue accepted the video
+                Live AutoVue
+                processing status
               </p>
+
             </div>
 
+
             <span className="job-status">
-              {createdJob.status}
+              {humanStage(
+                createdJob.status
+              )}
             </span>
 
           </div>
@@ -379,15 +696,23 @@ function AnalyzePage() {
           <div className="job-details">
 
             <div>
-              <span>Job ID</span>
+
+              <span>
+                Job ID
+              </span>
 
               <strong className="job-id">
                 {createdJob.job_id}
               </strong>
+
             </div>
 
+
             <div>
-              <span>Filename</span>
+
+              <span>
+                Filename
+              </span>
 
               <strong>
                 {
@@ -395,32 +720,123 @@ function AnalyzePage() {
                     .original_filename
                 }
               </strong>
+
             </div>
 
+
             <div>
-              <span>Size</span>
+
+              <span>
+                Size
+              </span>
 
               <strong>
                 {formatBytes(
                   createdJob.size_bytes
                 )}
               </strong>
+
             </div>
 
+
             <div>
-              <span>Status</span>
+
+              <span>
+                Progress
+              </span>
 
               <strong>
-                {createdJob.status}
+                {createdJob.progress}%
               </strong>
+
             </div>
 
           </div>
+
+
+          <progress
+            value={
+              createdJob.progress
+            }
+            max={100}
+            style={{
+              width: "100%",
+            }}
+          />
 
 
           <div className="job-message">
             {createdJob.message}
           </div>
+
+
+          {createdJob.error && (
+
+            <div className="upload-error">
+              {createdJob.error}
+            </div>
+
+          )}
+
+
+          {createdJob.status
+            === "UPLOADED"
+            && (
+
+              <button
+                type="button"
+                className="primary-button"
+                disabled={
+                  startingJobId
+                  === createdJob.job_id
+                }
+                onClick={
+                  () =>
+                    void handleRun(
+                      createdJob.job_id
+                    )
+                }
+              >
+                {startingJobId
+                  === createdJob.job_id
+                    ? "Starting Analysis..."
+                    : "Run Analysis"}
+              </button>
+
+            )}
+
+
+          {ACTIVE_STATUSES.has(
+            createdJob.status
+          ) && (
+
+            <div className="upload-note">
+              AutoVue is processing this
+              video. This page refreshes
+              the job status automatically.
+            </div>
+
+          )}
+
+
+          {createdJob.status
+            === "COMPLETED"
+            && (
+
+              <div className="upload-note">
+
+                Analysis complete.
+
+                <br />
+
+                The canonical recognition
+                result and analyzed video
+                are now available for this
+                job.
+
+              </div>
+
+            )}
 
         </section>
 
@@ -432,12 +848,18 @@ function AnalyzePage() {
         <div className="panel-heading">
 
           <div>
-            <h3>Recent Jobs</h3>
+
+            <h3>
+              Recent Jobs
+            </h3>
 
             <p>
-              Local AutoVue analysis workspace
+              Local AutoVue
+              analysis workspace
             </p>
+
           </div>
+
 
           <span className="reference-badge">
             {jobs.length} jobs
@@ -459,21 +881,28 @@ function AnalyzePage() {
             <table>
 
               <thead>
+
                 <tr>
                   <th>File</th>
                   <th>Job ID</th>
                   <th>Size</th>
                   <th>Status</th>
                   <th>Progress</th>
+                  <th>Action</th>
                 </tr>
+
               </thead>
+
 
               <tbody>
 
                 {jobs.map(
                   (job) => (
+
                     <tr
-                      key={job.job_id}
+                      key={
+                        job.job_id
+                      }
                     >
 
                       <td className="plate-value">
@@ -483,11 +912,13 @@ function AnalyzePage() {
                         }
                       </td>
 
+
                       <td className="job-id">
                         {
                           job.job_id
                         }
                       </td>
+
 
                       <td>
                         {formatBytes(
@@ -495,17 +926,31 @@ function AnalyzePage() {
                         )}
                       </td>
 
+
                       <td>
+
                         <span className="job-status">
-                          {job.status}
+                          {humanStage(
+                            job.status
+                          )}
                         </span>
+
                       </td>
+
 
                       <td>
                         {job.progress}%
                       </td>
 
+
+                      <td>
+                        {actionForJob(
+                          job
+                        )}
+                      </td>
+
                     </tr>
+
                   )
                 )}
 
