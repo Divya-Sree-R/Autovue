@@ -240,15 +240,45 @@ three primary loss components:
 The losses were recorded for every training epoch together with validation
 Precision, Recall, mAP@50 and mAP@50–95.
 
-#### YOLO11n Training Evidence
+#### YOLO11n Training and Validation Curves
 
-- [Training + Validation Loss Curves](./experiments/detector_benchmark/yolo11n/results.png)
-- [Raw Epoch-wise Training Metrics](./experiments/detector_benchmark/yolo11n/results.csv)
-- [Precision Curve](./experiments/detector_benchmark/yolo11n/BoxP_curve.png)
-- [Recall Curve](./experiments/detector_benchmark/yolo11n/BoxR_curve.png)
-- [F1 Curve](./experiments/detector_benchmark/yolo11n/BoxF1_curve.png)
-- [Precision–Recall Curve](./experiments/detector_benchmark/yolo11n/BoxPR_curve.png)
-- [Confusion Matrix](./experiments/detector_benchmark/yolo11n/confusion_matrix.png)
+The figure below summarizes the epoch-wise training and validation behaviour,
+including Box Loss, Classification Loss, DFL Loss, Precision, Recall,
+mAP@50 and mAP@50–95.
+
+<p align="center">
+  <img
+    src="./experiments/detector_benchmark/yolo11n/results.png"
+    alt="YOLO11n training and validation curves"
+    width="900">
+</p>
+
+#### YOLO11n Precision–Recall Curve
+
+<p align="center">
+  <img
+    src="./experiments/detector_benchmark/yolo11n/BoxPR_curve.png"
+    alt="YOLO11n precision recall curve"
+    width="600">
+</p>
+
+#### YOLO11n F1–Confidence Curve
+
+<p align="center">
+  <img
+    src="./experiments/detector_benchmark/yolo11n/BoxF1_curve.png"
+    alt="YOLO11n F1 confidence curve"
+    width="600">
+</p>
+
+#### YOLO11n Confusion Matrix
+
+<p align="center">
+  <img
+    src="./experiments/detector_benchmark/yolo11n/confusion_matrix.png"
+    alt="YOLO11n confusion matrix"
+    width="550">
+</p>
 
 The loss curves were used to inspect convergence and training behaviour,
 while detector selection was based primarily on held-out detection metrics
