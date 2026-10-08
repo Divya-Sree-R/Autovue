@@ -3,10 +3,42 @@
 <p align="center"><b>Leakage-safe detection · Multi-frame OCR · Evidence-aware recognition</b></p>
 
 <p align="center">
-  <img alt="Python" src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white">
-  <img alt="YOLO11" src="https://img.shields.io/badge/YOLO11-Ultralytics-111111">
-  <img alt="PaddleOCR" src="https://img.shields.io/badge/PaddleOCR-PP--OCRv5-0A64FF">
-  <img alt="Status" src="https://img.shields.io/badge/Research%20Pipeline-M25E%20Complete-0A8F8F">
+
+  <a href="https://www.python.org/">
+    <img alt="Python 3.12"
+         src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white">
+  </a>
+
+  <a href="https://pytorch.org/">
+    <img alt="PyTorch"
+         src="https://img.shields.io/badge/PyTorch-2.14.1%20%2B%20CUDA-EE4C2C?logo=pytorch&logoColor=white">
+  </a>
+
+  <a href="https://docs.ultralytics.com/models/yolo11/">
+    <img alt="YOLO11n"
+         src="https://img.shields.io/badge/YOLO11n-Vehicle%20%26%20Plate%20Detection-111111?logo=ultralytics&logoColor=white">
+  </a>
+
+  <a href="https://docs.ultralytics.com/modes/track/">
+    <img alt="BoT-SORT"
+         src="https://img.shields.io/badge/BoT--SORT-Vehicle%20Tracking-6A5ACD">
+  </a>
+
+  <a href="https://www.paddleocr.ai/">
+    <img alt="PaddleOCR"
+         src="https://img.shields.io/badge/PaddleOCR-PP--OCRv5-0A64FF">
+  </a>
+
+  <a href="https://opencv.org/">
+    <img alt="OpenCV"
+         src="https://img.shields.io/badge/OpenCV-Video%20%26%20Image%20Processing-5C3EE8?logo=opencv&logoColor=white">
+  </a>
+
+  <a href="./outputs/M25_final_road_eval">
+    <img alt="AutoVue Research Status"
+         src="https://img.shields.io/badge/AutoVue-M25E%20Research%20Pipeline%20Complete-0A8F8F">
+  </a>
+
 </p>
 
 **Theme:** Smart Mobility & Intelligent Transportation Systems  
