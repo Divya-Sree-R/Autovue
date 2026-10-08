@@ -5,7 +5,9 @@ import {
 } from "react";
 
 import {
+  getJobResults,
   getJobs,
+  jobMediaUrls,
   runJob,
   uploadVideo,
 } from "../services/api";
@@ -14,8 +16,12 @@ import type {
   AnalysisJob,
 } from "../services/api";
 
+import type {
+  AutoVueResult,
+} from "../types/autovue";
 
-const ACTIVE_STATUSES = new Set([
+
+const RUNNING_STATUSES = new Set([
   "QUEUED",
   "DETECTING_TRACKING",
   "OCR_PROCESSING",
@@ -25,13 +31,48 @@ const ACTIVE_STATUSES = new Set([
 
 
 const PIPELINE_STAGES = [
-  "UPLOADED",
-  "QUEUED",
-  "DETECTING_TRACKING",
-  "OCR_PROCESSING",
-  "TEMPORAL_CONSENSUS",
-  "RENDERING",
-  "COMPLETED",
+  {
+    status: "UPLOADED",
+    label: "Video uploaded",
+    description:
+      "Input video stored in the AutoVue job workspace.",
+  },
+  {
+    status: "QUEUED",
+    label: "Queued",
+    description:
+      "Waiting for the serialized analysis worker.",
+  },
+  {
+    status: "DETECTING_TRACKING",
+    label: "Detection & tracking",
+    description:
+      "Vehicle detection, BoT-SORT tracking and plate crop selection.",
+  },
+  {
+    status: "OCR_PROCESSING",
+    label: "OCR processing",
+    description:
+      "PaddleOCR, Indian plate parsing and rescue strategies.",
+  },
+  {
+    status: "TEMPORAL_CONSENSUS",
+    label: "Temporal consensus",
+    description:
+      "Multi-frame candidate voting and fragment corroboration.",
+  },
+  {
+    status: "RENDERING",
+    label: "Building output",
+    description:
+      "Canonical result generation and analyzed video rendering.",
+  },
+  {
+    status: "COMPLETED",
+    label: "Completed",
+    description:
+      "Results and media are ready for review.",
+  },
 ];
 
 
@@ -82,13 +123,94 @@ function humanStage(
 }
 
 
+function statusClass(
+  status: string
+) {
+  return (
+    "status " +
+    status
+      .toLowerCase()
+      .replaceAll(
+        "_",
+        "-"
+      )
+  );
+}
+
+
+function pipelineStepClass(
+  job: AnalysisJob | null,
+  index: number
+) {
+  if (!job) {
+    return "pipeline-step";
+  }
+
+  if (
+    job.status === "COMPLETED"
+  ) {
+    return (
+      "pipeline-step " +
+      "pipeline-step-complete"
+    );
+  }
+
+  const activeIndex =
+    PIPELINE_STAGES.findIndex(
+      (stage) =>
+        stage.status ===
+        job.status
+    );
+
+  if (
+    activeIndex === -1
+  ) {
+    return "pipeline-step";
+  }
+
+  if (index < activeIndex) {
+    return (
+      "pipeline-step " +
+      "pipeline-step-complete"
+    );
+  }
+
+  if (index === activeIndex) {
+    return (
+      "pipeline-step " +
+      "pipeline-step-active"
+    );
+  }
+
+  return "pipeline-step";
+}
+
+
 function AnalyzePage() {
 
   const [file, setFile] =
-    useState<File | null>(null);
+    useState<File | null>(
+      null
+    );
 
   const [jobs, setJobs] =
-    useState<AnalysisJob[]>([]);
+    useState<AnalysisJob[]>(
+      []
+    );
+
+  const [
+    selectedJob,
+    setSelectedJob,
+  ] = useState<AnalysisJob | null>(
+    null
+  );
+
+  const [
+    results,
+    setResults,
+  ] = useState<AutoVueResult | null>(
+    null
+  );
 
   const [uploading, setUploading] =
     useState(false);
@@ -101,18 +223,43 @@ function AnalyzePage() {
   );
 
   const [error, setError] =
-    useState<string | null>(null);
+    useState<string | null>(
+      null
+    );
 
   const [
-    createdJob,
-    setCreatedJob,
-  ] = useState<AnalysisJob | null>(
+    resultError,
+    setResultError,
+  ] = useState<string | null>(
     null
   );
 
 
+  const previewUrl = useMemo(
+    () => (
+      file
+        ? URL.createObjectURL(
+            file
+          )
+        : null
+    ),
+    [file]
+  );
+
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(
+          previewUrl
+        );
+      }
+    };
+  }, [previewUrl]);
+
+
   // -------------------------------------------------------
-  // Job history + live polling
+  // Poll job manifests
   // -------------------------------------------------------
 
   useEffect(() => {
@@ -121,6 +268,7 @@ function AnalyzePage() {
 
 
     async function refreshJobs() {
+
       try {
 
         const latest =
@@ -130,14 +278,40 @@ function AnalyzePage() {
           return;
         }
 
-        setJobs(latest);
 
-        setCreatedJob(
+        setJobs(
+          latest
+        );
+
+
+        setSelectedJob(
           (current) => {
 
+            const runningJob =
+              latest.find(
+                (item) =>
+                  RUNNING_STATUSES.has(
+                    item.status
+                  )
+              );
+
+            const completedJob =
+              latest.find(
+                (item) =>
+                  item.status
+                  === "COMPLETED"
+              );
+
+
             if (!current) {
-              return current;
+              return (
+                runningJob
+                ?? completedJob
+                ?? latest[0]
+                ?? null
+              );
             }
+
 
             return (
               latest.find(
@@ -145,14 +319,17 @@ function AnalyzePage() {
                   item.job_id ===
                   current.job_id
               )
-              ?? current
+              ?? runningJob
+              ?? completedJob
+              ?? latest[0]
+              ?? null
             );
           }
         );
 
       } catch {
-        // Keep the page usable if polling
-        // temporarily fails.
+        // Keep page usable during
+        // temporary backend/network issues.
       }
     }
 
@@ -160,15 +337,17 @@ function AnalyzePage() {
     void refreshJobs();
 
 
-    const timer = window.setInterval(
-      () => {
-        void refreshJobs();
-      },
-      2000
-    );
+    const timer =
+      window.setInterval(
+        () => {
+          void refreshJobs();
+        },
+        2000
+      );
 
 
     return () => {
+
       cancelled = true;
 
       window.clearInterval(
@@ -179,30 +358,107 @@ function AnalyzePage() {
   }, []);
 
 
-  const filePreview = useMemo(
-    () => {
+  // -------------------------------------------------------
+  // Load canonical results after completion
+  // -------------------------------------------------------
 
-      if (!file) {
-        return null;
-      }
+  useEffect(() => {
 
-      return {
-        name:
-          file.name,
+    let cancelled = false;
 
-        size:
-          formatBytes(
-            file.size
-          ),
 
-        type:
-          file.type
-          || "video/mp4",
+    if (
+      selectedJob?.status
+      !== "COMPLETED"
+    ) {
+      return () => {
+        cancelled = true;
       };
+    }
 
-    },
-    [file]
-  );
+
+    getJobResults(
+      selectedJob.job_id
+    )
+      .then((data) => {
+
+        if (!cancelled) {
+          setResults(
+            data
+          );
+        }
+
+      })
+      .catch((err) => {
+
+        if (!cancelled) {
+
+          setResults(null);
+
+          setResultError(
+            err instanceof Error
+              ? err.message
+              : (
+                  "Unable to load "
+                  + "analysis results."
+                )
+          );
+        }
+
+      });
+
+
+    return () => {
+      cancelled = true;
+    };
+
+  }, [
+    selectedJob?.job_id,
+    selectedJob?.status,
+  ]);
+
+
+  const activeJob =
+    jobs.find(
+      (job) =>
+        RUNNING_STATUSES.has(
+          job.status
+        )
+    )
+    ?? null;
+
+
+  const selectedMedia =
+    selectedJob
+      ? jobMediaUrls(
+          selectedJob.job_id
+        )
+      : null;
+
+
+  const sourceVideo =
+    previewUrl
+    ?? selectedMedia?.original
+    ?? null;
+
+
+  const recognized =
+    results?.clusters.filter(
+      (cluster) =>
+        cluster.final_candidate
+        !== null
+    )
+    ?? [];
+
+
+  const primaryResult =
+    recognized.find(
+      (cluster) =>
+        cluster.status
+        === "VERIFIED_FULL"
+    )
+    ?? recognized[0]
+    ?? null;
 
 
   function handleFile(
@@ -211,11 +467,13 @@ function AnalyzePage() {
 
     setError(null);
 
-    setCreatedJob(null);
+    setResultError(null);
 
 
     if (!selected) {
+
       setFile(null);
+
       return;
     }
 
@@ -239,6 +497,14 @@ function AnalyzePage() {
     setFile(
       selected
     );
+
+    setSelectedJob(
+      null
+    );
+
+    setResults(
+      null
+    );
   }
 
 
@@ -252,9 +518,13 @@ function AnalyzePage() {
     }
 
 
-    setUploading(true);
+    setUploading(
+      true
+    );
 
-    setError(null);
+    setError(
+      null
+    );
 
 
     try {
@@ -263,11 +533,6 @@ function AnalyzePage() {
         await uploadVideo(
           file
         );
-
-
-      setCreatedJob(
-        job
-      );
 
 
       setJobs(
@@ -282,7 +547,21 @@ function AnalyzePage() {
       );
 
 
-      setFile(null);
+      setResults(
+        null
+      );
+
+      setResultError(
+        null
+      );
+
+      setSelectedJob(
+        job
+      );
+
+      setFile(
+        null
+      );
 
     } catch (err) {
 
@@ -294,7 +573,9 @@ function AnalyzePage() {
 
     } finally {
 
-      setUploading(false);
+      setUploading(
+        false
+      );
 
     }
   }
@@ -316,7 +597,9 @@ function AnalyzePage() {
       jobId
     );
 
-    setError(null);
+    setError(
+      null
+    );
 
 
     try {
@@ -339,12 +622,16 @@ function AnalyzePage() {
       );
 
 
-      setCreatedJob(
-        (current) =>
-          current?.job_id
-          === job.job_id
-            ? job
-            : current
+      setResults(
+        null
+      );
+
+      setResultError(
+        null
+      );
+
+      setSelectedJob(
+        job
       );
 
     } catch (err) {
@@ -368,7 +655,33 @@ function AnalyzePage() {
   }
 
 
-  function actionForJob(
+  function selectExistingJob(
+    job: AnalysisJob
+  ) {
+
+    setFile(
+      null
+    );
+
+    setError(
+      null
+    );
+
+    setResultError(
+      null
+    );
+
+    setResults(
+      null
+    );
+
+    setSelectedJob(
+      job
+    );
+  }
+
+
+  function jobAction(
     job: AnalysisJob
   ) {
 
@@ -377,17 +690,25 @@ function AnalyzePage() {
       === "UPLOADED"
     ) {
 
-      const starting =
-        startingJobId
-        === job.job_id;
+      const workerBusy =
+        activeJob !== null
+        && activeJob.job_id
+          !== job.job_id;
 
 
       return (
         <button
           type="button"
-          className="secondary-button"
+          className="table-action"
           disabled={
-            starting
+            startingJobId
+            === job.job_id
+            || workerBusy
+          }
+          title={
+            workerBusy
+              ? "Another AutoVue job is currently running."
+              : "Run AutoVue analysis"
           }
           onClick={() =>
             void handleRun(
@@ -395,53 +716,32 @@ function AnalyzePage() {
             )
           }
         >
-          {starting
-            ? "Starting..."
-            : "Run Analysis"}
+          {startingJobId
+            === job.job_id
+              ? "Starting..."
+              : workerBusy
+              ? "Worker Busy"
+              : "Run"}
         </button>
       );
     }
 
 
-    if (
-      ACTIVE_STATUSES.has(
-        job.status
-      )
-    ) {
-      return (
-        <span>
-          Running…
-        </span>
-      );
-    }
-
-
-    if (
-      job.status
-      === "COMPLETED"
-    ) {
-      return (
-        <span>
-          Complete
-        </span>
-      );
-    }
-
-
-    if (
-      job.status
-      === "FAILED"
-    ) {
-      return (
-        <span>
-          Failed
-        </span>
-      );
-    }
-
-
     return (
-      <span>—</span>
+      <button
+        type="button"
+        className="table-action"
+        onClick={() =>
+          selectExistingJob(
+            job
+          )
+        }
+      >
+        {job.status
+          === "COMPLETED"
+            ? "View"
+            : "Open"}
+      </button>
     );
   }
 
@@ -449,415 +749,775 @@ function AnalyzePage() {
   return (
     <div className="analyze-page">
 
-      <header className="route-header">
+      <header className="route-header analyze-header">
 
         <span className="route-eyebrow">
-          AutoVue
+          AutoVue Workspace
         </span>
 
         <h2>
-          Analyze Video
+          Analyze Road Video
         </h2>
 
         <p>
-          Upload an MP4 road video,
-          then run the complete AutoVue
-          recognition pipeline.
+          Upload road footage, run the complete
+          Indian ANPR pipeline, and inspect the
+          resulting temporal recognition evidence.
         </p>
 
       </header>
 
 
-      <section className="upload-grid">
+      {error && (
 
-        <div className="panel upload-panel">
-
-          <div className="panel-heading">
-
-            <div>
-
-              <h3>
-                Video Input
-              </h3>
-
-              <p>
-                MP4 · maximum 500 MB
-              </p>
-
-            </div>
-
-          </div>
-
-
-          <div className="upload-content">
-
-            <label className="upload-dropzone">
-
-              <input
-                type="file"
-                accept="video/mp4,.mp4"
-                onChange={
-                  (event) =>
-                    handleFile(
-                      event.target
-                        .files?.[0]
-                      ?? null
-                    )
-                }
-              />
-
-
-              <div className="upload-icon">
-                ↑
-              </div>
-
-
-              <strong>
-                Select road video
-              </strong>
-
-
-              <span>
-                Choose an MP4 file
-                from this computer
-              </span>
-
-            </label>
-
-
-            {filePreview && (
-
-              <div className="selected-file">
-
-                <div>
-
-                  <strong>
-                    {filePreview.name}
-                  </strong>
-
-                  <span>
-                    {filePreview.size}
-                    {" · "}
-                    {filePreview.type}
-                  </span>
-
-                </div>
-
-
-                <button
-                  type="button"
-                  className="secondary-button"
-                  onClick={
-                    () =>
-                      setFile(null)
-                  }
-                >
-                  Remove
-                </button>
-
-              </div>
-
-            )}
-
-
-            {error && (
-
-              <div className="upload-error">
-                {error}
-              </div>
-
-            )}
-
-
-            <button
-              type="button"
-              className="primary-button"
-              disabled={
-                !file
-                || uploading
-              }
-              onClick={
-                () =>
-                  void handleUpload()
-              }
-            >
-              {uploading
-                ? "Uploading..."
-                : "Create Analysis Job"}
-            </button>
-
-
-            <div className="upload-note">
-
-              Uploading creates a job
-              without starting GPU
-              inference automatically.
-
-              <br />
-
-              After upload, choose
-              <strong>
-                {" Run Analysis "}
-              </strong>
-              to start detection,
-              tracking, OCR and
-              temporal reasoning.
-
-            </div>
-
-          </div>
-
+        <div className="analysis-alert analysis-alert-error">
+          {error}
         </div>
-
-
-        <div className="panel workflow-panel">
-
-          <div className="panel-heading">
-
-            <div>
-
-              <h3>
-                Analysis Pipeline
-              </h3>
-
-              <p>
-                Live job lifecycle
-              </p>
-
-            </div>
-
-          </div>
-
-
-          <div className="workflow-list">
-
-            {PIPELINE_STAGES.map(
-              (
-                stage,
-                index
-              ) => (
-
-                <div
-                  className="workflow-stage"
-                  key={stage}
-                >
-
-                  <span>
-                    {index + 1}
-                  </span>
-
-                  <strong>
-                    {humanStage(
-                      stage
-                    )}
-                  </strong>
-
-                </div>
-
-              )
-            )}
-
-          </div>
-
-        </div>
-
-      </section>
-
-
-      {createdJob && (
-
-        <section className="panel created-job">
-
-          <div className="panel-heading">
-
-            <div>
-
-              <h3>
-                Analysis Job
-              </h3>
-
-              <p>
-                Live AutoVue
-                processing status
-              </p>
-
-            </div>
-
-
-            <span className="job-status">
-              {humanStage(
-                createdJob.status
-              )}
-            </span>
-
-          </div>
-
-
-          <div className="job-details">
-
-            <div>
-
-              <span>
-                Job ID
-              </span>
-
-              <strong className="job-id">
-                {createdJob.job_id}
-              </strong>
-
-            </div>
-
-
-            <div>
-
-              <span>
-                Filename
-              </span>
-
-              <strong>
-                {
-                  createdJob
-                    .original_filename
-                }
-              </strong>
-
-            </div>
-
-
-            <div>
-
-              <span>
-                Size
-              </span>
-
-              <strong>
-                {formatBytes(
-                  createdJob.size_bytes
-                )}
-              </strong>
-
-            </div>
-
-
-            <div>
-
-              <span>
-                Progress
-              </span>
-
-              <strong>
-                {createdJob.progress}%
-              </strong>
-
-            </div>
-
-          </div>
-
-
-          <progress
-            value={
-              createdJob.progress
-            }
-            max={100}
-            style={{
-              width: "100%",
-            }}
-          />
-
-
-          <div className="job-message">
-            {createdJob.message}
-          </div>
-
-
-          {createdJob.error && (
-
-            <div className="upload-error">
-              {createdJob.error}
-            </div>
-
-          )}
-
-
-          {createdJob.status
-            === "UPLOADED"
-            && (
-
-              <button
-                type="button"
-                className="primary-button"
-                disabled={
-                  startingJobId
-                  === createdJob.job_id
-                }
-                onClick={
-                  () =>
-                    void handleRun(
-                      createdJob.job_id
-                    )
-                }
-              >
-                {startingJobId
-                  === createdJob.job_id
-                    ? "Starting Analysis..."
-                    : "Run Analysis"}
-              </button>
-
-            )}
-
-
-          {ACTIVE_STATUSES.has(
-            createdJob.status
-          ) && (
-
-            <div className="upload-note">
-              AutoVue is processing this
-              video. This page refreshes
-              the job status automatically.
-            </div>
-
-          )}
-
-
-          {createdJob.status
-            === "COMPLETED"
-            && (
-
-              <div className="upload-note">
-
-                Analysis complete.
-
-                <br />
-
-                The canonical recognition
-                result and analyzed video
-                are now available for this
-                job.
-
-              </div>
-
-            )}
-
-        </section>
 
       )}
 
 
-      <section className="panel recent-jobs">
+      {activeJob
+        && selectedJob
+        && activeJob.job_id
+          !== selectedJob.job_id
+        && (
+
+          <div className="analysis-alert analysis-alert-info">
+
+            <div>
+              <strong>
+                AutoVue is processing another video
+              </strong>
+
+              <span>
+                {activeJob.original_filename}
+                {" · "}
+                {humanStage(activeJob.status)}
+                {" · "}
+                {activeJob.progress}%
+              </span>
+            </div>
+
+            <button
+              type="button"
+              className="table-action"
+              onClick={() =>
+                selectExistingJob(
+                  activeJob
+                )
+              }
+            >
+              Open Running Job
+            </button>
+
+          </div>
+
+        )}
+
+
+      <section className="analysis-workspace-grid">
+
+        <article className="panel source-workspace">
+
+          <div className="panel-heading">
+
+            <div>
+              <h3>Source Video</h3>
+
+              <p>
+                Upload and preview footage before
+                starting analysis
+              </p>
+            </div>
+
+
+            {selectedJob && (
+
+              <span className="workspace-badge">
+                {humanStage(
+                  selectedJob.status
+                )}
+              </span>
+
+            )}
+
+          </div>
+
+
+          <div className="source-workspace-body">
+
+            {sourceVideo ? (
+
+              <div className="source-video-frame">
+
+                <video
+                  key={sourceVideo}
+                  src={sourceVideo}
+                  controls
+                  preload="metadata"
+                />
+
+              </div>
+
+            ) : (
+
+              <label className="source-empty-state">
+
+                <input
+                  type="file"
+                  accept="video/mp4,.mp4"
+                  onChange={
+                    (event) =>
+                      handleFile(
+                        event.target
+                          .files?.[0]
+                        ?? null
+                      )
+                  }
+                />
+
+                <div className="source-upload-icon">
+                  ↑
+                </div>
+
+                <strong>
+                  Upload a road video
+                </strong>
+
+                <span>
+                  Select an MP4 file to preview
+                  and test with AutoVue
+                </span>
+
+              </label>
+
+            )}
+
+
+            <div className="source-controls">
+
+              <div className="source-meta">
+
+                {file ? (
+                  <>
+                    <strong>
+                      {file.name}
+                    </strong>
+
+                    <span>
+                      {formatBytes(
+                        file.size
+                      )}
+                      {" · Local preview"}
+                    </span>
+                  </>
+                ) : selectedJob ? (
+                  <>
+                    <strong>
+                      {
+                        selectedJob
+                          .original_filename
+                      }
+                    </strong>
+
+                    <span>
+                      {formatBytes(
+                        selectedJob
+                          .size_bytes
+                      )}
+                      {" · Job "}
+                      {
+                        selectedJob
+                          .job_id
+                          .slice(
+                            0,
+                            8
+                          )
+                      }
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <strong>
+                      No video selected
+                    </strong>
+
+                    <span>
+                      MP4 · maximum 500 MB
+                    </span>
+                  </>
+                )}
+
+              </div>
+
+
+              <div className="source-actions">
+
+                <label className="secondary-button analyze-file-button">
+
+                  {sourceVideo
+                    ? "Choose Another"
+                    : "Choose Video"}
+
+                  <input
+                    type="file"
+                    accept="video/mp4,.mp4"
+                    onChange={
+                      (event) =>
+                        handleFile(
+                          event.target
+                            .files?.[0]
+                          ?? null
+                        )
+                    }
+                  />
+
+                </label>
+
+
+                {file && (
+
+                  <button
+                    type="button"
+                    className="primary-button compact-primary"
+                    disabled={
+                      uploading
+                    }
+                    onClick={
+                      () =>
+                        void handleUpload()
+                    }
+                  >
+                    {uploading
+                      ? "Uploading..."
+                      : "Upload Video"}
+                  </button>
+
+                )}
+
+
+                {!file
+                  && selectedJob?.status
+                    === "UPLOADED"
+                  && (
+
+                    <button
+                      type="button"
+                      className="primary-button compact-primary"
+                      disabled={
+                        startingJobId
+                        === selectedJob.job_id
+                        || (
+                          activeJob !== null
+                          && activeJob.job_id
+                            !== selectedJob.job_id
+                        )
+                      }
+                      onClick={
+                        () =>
+                          void handleRun(
+                            selectedJob.job_id
+                          )
+                      }
+                    >
+                      {startingJobId
+                        === selectedJob.job_id
+                          ? "Starting..."
+                          : "Run Analysis"}
+                    </button>
+
+                  )}
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </article>
+
+
+        <article className="panel pipeline-workspace">
+
+          <div className="panel-heading">
+
+            <div>
+              <h3>Live Analysis</h3>
+
+              <p>
+                End-to-end AutoVue processing
+              </p>
+            </div>
+
+
+            <strong className="pipeline-percent">
+              {selectedJob
+                ? `${selectedJob.progress}%`
+                : "0%"}
+            </strong>
+
+          </div>
+
+
+          <div className="pipeline-workspace-body">
+
+            <div className="pipeline-progress-row">
+
+              <progress
+                value={
+                  selectedJob
+                    ?.progress
+                  ?? 0
+                }
+                max={100}
+              />
+
+            </div>
+
+
+            <div className="pipeline-timeline">
+
+              {PIPELINE_STAGES.map(
+                (
+                  stage,
+                  index
+                ) => {
+
+                  const className =
+                    pipelineStepClass(
+                      selectedJob,
+                      index
+                    );
+
+                  const complete =
+                    className.includes(
+                      "pipeline-step-complete"
+                    );
+
+                  const active =
+                    className.includes(
+                      "pipeline-step-active"
+                    );
+
+
+                  return (
+
+                    <div
+                      key={
+                        stage.status
+                      }
+                      className={
+                        className
+                      }
+                    >
+
+                      <div className="pipeline-marker">
+                        {complete
+                          ? "✓"
+                          : active
+                          ? "●"
+                          : index + 1}
+                      </div>
+
+
+                      <div className="pipeline-step-copy">
+
+                        <strong>
+                          {stage.label}
+                        </strong>
+
+                        <span>
+                          {stage.description}
+                        </span>
+
+                      </div>
+
+                    </div>
+
+                  );
+
+                }
+              )}
+
+            </div>
+
+
+            <div className="pipeline-message">
+
+              {selectedJob
+                ? selectedJob.message
+                : (
+                    "Choose a video to create "
+                    + "an AutoVue analysis job."
+                  )}
+
+            </div>
+
+
+            {selectedJob?.status
+              === "FAILED"
+              && (
+
+                <div className="analysis-alert analysis-alert-error">
+
+                  <strong>
+                    Analysis failed
+                  </strong>
+
+                  <span>
+                    {
+                      selectedJob.error
+                      ?? (
+                        "Check the worker "
+                        + "analysis log."
+                      )
+                    }
+                  </span>
+
+                </div>
+
+              )}
+
+          </div>
+
+        </article>
+
+      </section>
+
+
+      <section className="analysis-output-grid">
+
+        <article className="panel analysis-video-panel">
+
+          <div className="panel-heading">
+
+            <div>
+              <h3>Analyzed Output</h3>
+
+              <p>
+                Detection and temporal recognition
+                output
+              </p>
+            </div>
+
+
+            {selectedJob?.status
+              === "COMPLETED"
+              && (
+
+                <span className="output-ready">
+                  ● Ready
+                </span>
+
+              )}
+
+          </div>
+
+
+          <div className="analysis-output-body">
+
+            {selectedJob?.status
+              === "COMPLETED"
+              && selectedMedia ? (
+
+                <video
+                  key={
+                    selectedMedia.analyzed
+                  }
+                  src={
+                    selectedMedia.analyzed
+                  }
+                  controls
+                  preload="metadata"
+                />
+
+              ) : (
+
+                <div className="output-placeholder">
+
+                  <div className="output-placeholder-icon">
+                    ◉
+                  </div>
+
+                  <strong>
+                    Analysis output
+                  </strong>
+
+                  <span>
+                    The rendered AutoVue video
+                    appears here when the job
+                    completes.
+                  </span>
+
+                </div>
+
+              )}
+
+          </div>
+
+        </article>
+
+
+        <article className="panel recognition-workspace">
+
+          <div className="panel-heading">
+
+            <div>
+              <h3>Recognition Result</h3>
+
+              <p>
+                Multi-frame plate evidence
+              </p>
+            </div>
+
+
+            {results && (
+
+              <span className="reference-badge">
+                {recognized.length} candidates
+              </span>
+
+            )}
+
+          </div>
+
+
+          <div className="recognition-workspace-body">
+
+            {resultError && (
+
+              <div className="analysis-alert analysis-alert-error">
+                {resultError}
+              </div>
+
+            )}
+
+
+            {!results && !resultError && (
+
+              <div className="recognition-empty">
+
+                <strong>
+                  Waiting for analysis
+                </strong>
+
+                <span>
+                  Recognized plate candidates and
+                  evidence states will appear here.
+                </span>
+
+              </div>
+
+            )}
+
+
+            {results && (
+
+              <>
+
+                <div className="result-summary-grid">
+
+                  <div>
+                    <span>
+                      Track clusters
+                    </span>
+
+                    <strong>
+                      {
+                        results
+                          .summary
+                          .conservative_clusters
+                      }
+                    </strong>
+                  </div>
+
+
+                  <div>
+                    <span>
+                      Candidates
+                    </span>
+
+                    <strong>
+                      {
+                        results
+                          .summary
+                          .clusters_with_complete_candidate
+                      }
+                    </strong>
+                  </div>
+
+
+                  <div>
+                    <span>
+                      Verified
+                    </span>
+
+                    <strong>
+                      {
+                        results
+                          .summary
+                          .verified_full
+                      }
+                    </strong>
+                  </div>
+
+
+                  <div>
+                    <span>
+                      Review
+                    </span>
+
+                    <strong>
+                      {
+                        results
+                          .summary
+                          .needs_review
+                      }
+                    </strong>
+                  </div>
+
+                </div>
+
+
+                {primaryResult && (
+
+                  <div className="primary-recognition">
+
+                    <span>
+                      Primary verified evidence
+                    </span>
+
+                    <strong>
+                      {
+                        primaryResult
+                          .final_candidate
+                      }
+                    </strong>
+
+                    <div>
+
+                      <span
+                        className={
+                          statusClass(
+                            primaryResult
+                              .status
+                          )
+                        }
+                      >
+                        {
+                          primaryResult
+                            .status
+                        }
+                      </span>
+
+                      <small>
+                        Cluster #
+                        {
+                          primaryResult
+                            .cluster_id
+                        }
+                      </small>
+
+                    </div>
+
+                  </div>
+
+                )}
+
+
+                <div className="recognized-list">
+
+                  {recognized.map(
+                    (cluster) => (
+
+                      <div
+                        className="recognized-row"
+                        key={
+                          cluster.cluster_id
+                        }
+                      >
+
+                        <div>
+
+                          <strong>
+                            {
+                              cluster
+                                .final_candidate
+                            }
+                          </strong>
+
+                          <span>
+                            Cluster #
+                            {
+                              cluster
+                                .cluster_id
+                            }
+                            {" · "}
+                            {
+                              cluster
+                                .full_frame_support
+                            }
+                            {" full · "}
+                            {
+                              cluster
+                                .fragment_support_frames
+                            }
+                            {" fragment"}
+                          </span>
+
+                        </div>
+
+
+                        <span
+                          className={
+                            statusClass(
+                              cluster.status
+                            )
+                          }
+                        >
+                          {
+                            cluster.status
+                          }
+                        </span>
+
+                      </div>
+
+                    )
+                  )}
+
+                </div>
+
+
+                <div className="result-disclaimer">
+                  Evidence status describes the
+                  strength of temporal recognition
+                  evidence. It is not a ground-truth
+                  accuracy claim.
+                </div>
+
+              </>
+
+            )}
+
+          </div>
+
+        </article>
+
+      </section>
+
+
+      <section className="panel recent-jobs modern-jobs-panel">
 
         <div className="panel-heading">
 
           <div>
-
-            <h3>
-              Recent Jobs
-            </h3>
+            <h3>Recent Analysis Jobs</h3>
 
             <p>
-              Local AutoVue
-              analysis workspace
+              Select previous uploads or reopen
+              completed results
             </p>
-
           </div>
 
 
@@ -883,12 +1543,12 @@ function AnalyzePage() {
               <thead>
 
                 <tr>
-                  <th>File</th>
-                  <th>Job ID</th>
+                  <th>Video</th>
+                  <th>Job</th>
                   <th>Size</th>
                   <th>Status</th>
                   <th>Progress</th>
-                  <th>Action</th>
+                  <th />
                 </tr>
 
               </thead>
@@ -903,9 +1563,16 @@ function AnalyzePage() {
                       key={
                         job.job_id
                       }
+                      className={
+                        selectedJob
+                          ?.job_id
+                        === job.job_id
+                          ? "selected-row"
+                          : ""
+                      }
                     >
 
-                      <td className="plate-value">
+                      <td className="job-file-name">
                         {
                           job
                             .original_filename
@@ -916,7 +1583,12 @@ function AnalyzePage() {
                       <td className="job-id">
                         {
                           job.job_id
+                            .slice(
+                              0,
+                              13
+                            )
                         }
+                        …
                       </td>
 
 
@@ -944,7 +1616,7 @@ function AnalyzePage() {
 
 
                       <td>
-                        {actionForJob(
+                        {jobAction(
                           job
                         )}
                       </td>
