@@ -296,6 +296,7 @@ def render_presentation_video(
             input_video=clean_tracking,
             result_json=result_json,
             output_video=output_video,
+            presentation_mode=True,
         )
 
 

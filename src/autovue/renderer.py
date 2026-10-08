@@ -192,13 +192,12 @@ def render_analysis_video(
     input_video: Path,
     result_json: Path,
     output_video: Path,
+    presentation_mode: bool = False,
 ) -> None:
 
     result = load_result(
         result_json
     )
-
-    summary = result["summary"]
 
     spans, observations_by_frame = (
         build_timeline(result)
@@ -236,6 +235,49 @@ def render_analysis_video(
         )
     )
 
+    # -----------------------------------------------------
+    # Presentation UI scaling
+    #
+    # Frozen/reference rendering remains exactly at 1.0.
+    #
+    # Product presentation videos scale their informational
+    # overlays according to video resolution so text remains
+    # readable on 1080p footage.
+    # -----------------------------------------------------
+
+    overlay_scale = 1.0
+
+    if presentation_mode:
+
+        resolution_scale = min(
+            width / 768.0,
+            height / 432.0,
+        )
+
+        overlay_scale = max(
+            1.0,
+            min(
+                1.8,
+                resolution_scale,
+            ),
+        )
+
+
+    def scaled(
+        value: int,
+    ) -> int:
+
+        return max(
+            1,
+            int(
+                round(
+                    value
+                    * overlay_scale
+                )
+            ),
+        )
+
+
     output_video.parent.mkdir(
         parents=True,
         exist_ok=True,
@@ -252,7 +294,10 @@ def render_analysis_video(
             *"mp4v"
         ),
         fps,
-        (width, height),
+        (
+            width,
+            height,
+        ),
     )
 
     if not writer.isOpened():
@@ -263,6 +308,7 @@ def render_analysis_video(
     frame_index = 0
 
     while True:
+
         ok, frame = cap.read()
 
         if not ok:
@@ -270,23 +316,11 @@ def render_analysis_video(
 
         frame_index += 1
 
-        current_time = (
-            frame_index / fps
-            if fps > 0
-            else 0
-        )
 
         # -------------------------------------------------
-        # AutoVue temporal result panel
-        #
-        # The frozen M25B video already contains its own
-        # frame/tracking HUD in the upper-left corner.
-        # We therefore avoid placing another full-width HUD
-        # over it.
+        # Active temporal recognition results
         # -------------------------------------------------
-        # -------------------------------------------------
-        # Active final recognition results
-        # -------------------------------------------------
+
         active = [
             item
             for item in spans
@@ -297,92 +331,184 @@ def render_analysis_video(
             )
         ]
 
+
         if active:
-            panel_height = (
-                31
-                + 39 * min(
-                    len(active),
-                    3,
-                )
+
+            visible_count = min(
+                len(active),
+                3,
             )
 
-            panel_width = 305
+            panel_width = scaled(
+                330
+            )
+
+            panel_height = (
+                scaled(38)
+                + scaled(50)
+                * visible_count
+            )
+
+            margin = scaled(
+                10
+            )
 
             x1 = (
                 width
                 - panel_width
-                - 8
+                - margin
             )
 
-            y1 = 10
+            y1 = margin
+
 
             _draw_alpha_box(
                 frame,
                 x1,
                 y1,
-                width - 8,
+                width - margin,
                 y1 + panel_height,
-                alpha=0.78,
+                alpha=0.82,
             )
+
 
             _put_text(
                 frame,
                 "AUTOVUE TEMPORAL RESULT",
-                x1 + 10,
-                y1 + 20,
-                scale=0.42,
-                color=(220, 220, 220),
-                thickness=1,
+                x1 + scaled(12),
+                y1 + scaled(23),
+                scale=(
+                    0.42
+                    * overlay_scale
+                ),
+                color=(
+                    225,
+                    225,
+                    225,
+                ),
+                thickness=(
+                    2
+                    if presentation_mode
+                    else 1
+                ),
             )
+
 
             for index, item in enumerate(
                 active[:3]
             ):
-                y = (
+
+                row_y = (
                     y1
-                    + 45
-                    + index * 39
+                    + scaled(50)
+                    + index
+                    * scaled(50)
                 )
 
-                status = item["status"]
+                status = item[
+                    "status"
+                ]
 
                 color = (
                     STATUS_COLORS.get(
                         status,
-                        (255, 255, 255),
+                        (
+                            255,
+                            255,
+                            255,
+                        ),
                     )
                 )
 
-                _put_text(
-                    frame,
-                    (
+
+                # Product presentation mode emphasizes
+                # the recognized plate itself.
+                if presentation_mode:
+
+                    main_text = (
+                        f"PLATE  "
+                        f"{item['plate']}"
+                    )
+
+                    detail_text = (
+                        f"{status}"
+                        f"  |  cluster "
+                        f"#{item['cluster_id']}"
+                        f"  |  full="
+                        f"{item['full_support']}"
+                        f"  frag="
+                        f"{item['fragment_support']}"
+                    )
+
+                else:
+
+                    main_text = (
                         f"#{item['cluster_id']} "
                         f"{item['plate']}"
-                    ),
-                    x1 + 10,
-                    y,
-                    scale=0.52,
-                    color=(255, 255, 255),
-                    thickness=2,
-                )
+                    )
+
+                    detail_text = (
+                        f"{status}  |  "
+                        f"full="
+                        f"{item['full_support']} "
+                        f"frag="
+                        f"{item['fragment_support']}"
+                    )
+
 
                 _put_text(
                     frame,
-                    (
-                        f"{status}  |  "
-                        f"full={item['full_support']} "
-                        f"frag={item['fragment_support']}"
+                    main_text,
+                    x1 + scaled(12),
+                    row_y,
+                    scale=(
+                        (
+                            0.60
+                            if presentation_mode
+                            else 0.52
+                        )
+                        * overlay_scale
                     ),
-                    x1 + 10,
-                    y + 18,
-                    scale=0.35,
-                    color=color,
-                    thickness=1,
+                    color=(
+                        255,
+                        255,
+                        255,
+                    ),
+                    thickness=(
+                        2
+                        if presentation_mode
+                        else 2
+                    ),
                 )
 
+
+                _put_text(
+                    frame,
+                    detail_text,
+                    x1 + scaled(12),
+                    row_y
+                    + scaled(20),
+                    scale=(
+                        (
+                            0.39
+                            if presentation_mode
+                            else 0.35
+                        )
+                        * overlay_scale
+                    ),
+                    color=color,
+                    thickness=(
+                        2
+                        if presentation_mode
+                        else 1
+                    ),
+                )
+
+
         # -------------------------------------------------
-        # Exact OCR observation event
+        # Exact OCR observation
         # -------------------------------------------------
+
         frame_events = (
             observations_by_frame.get(
                 frame_index,
@@ -390,26 +516,49 @@ def render_analysis_video(
             )
         )
 
-        if frame_events:
-            event = frame_events[0]
 
-            box_height = 72
+        if frame_events:
+
+            event = (
+                frame_events[0]
+            )
+
+            box_height = scaled(
+                82
+                if presentation_mode
+                else 72
+            )
+
+            margin = scaled(
+                8
+            )
+
 
             _draw_alpha_box(
                 frame,
-                8,
-                height - box_height - 8,
-                width - 8,
-                height - 8,
-                alpha=0.80,
+                margin,
+                height
+                - box_height
+                - margin,
+                width
+                - margin,
+                height
+                - margin,
+                alpha=0.82,
             )
+
 
             status_color = (
                 STATUS_COLORS.get(
                     event["status"],
-                    (255, 255, 255),
+                    (
+                        255,
+                        255,
+                        255,
+                    ),
                 )
             )
+
 
             raw_text = (
                 event["raw"]
@@ -417,47 +566,81 @@ def render_analysis_video(
                 else "[no OCR text]"
             )
 
-            _put_text(
-                frame,
-                (
-                    f"OCR observation: "
-                    f"{raw_text}"
-                ),
-                18,
-                height - 54,
-                scale=0.46,
-            )
 
             _put_text(
                 frame,
                 (
-                    f"Final plate: "
+                    "OCR observation: "
+                    f"{raw_text}"
+                ),
+                scaled(18),
+                height
+                - scaled(59),
+                scale=(
+                    0.47
+                    * overlay_scale
+                ),
+                thickness=(
+                    2
+                    if presentation_mode
+                    else 1
+                ),
+            )
+
+
+            _put_text(
+                frame,
+                (
+                    "Final plate: "
                     f"{event['plate']}"
                 ),
-                18,
-                height - 32,
-                scale=0.50,
+                scaled(18),
+                height
+                - scaled(34),
+                scale=(
+                    (
+                        0.58
+                        if presentation_mode
+                        else 0.50
+                    )
+                    * overlay_scale
+                ),
                 thickness=2,
             )
+
 
             _put_text(
                 frame,
                 event["status"],
-                18,
-                height - 12,
-                scale=0.40,
+                scaled(18),
+                height
+                - scaled(12),
+                scale=(
+                    0.42
+                    * overlay_scale
+                ),
                 color=status_color,
-                thickness=1,
+                thickness=(
+                    2
+                    if presentation_mode
+                    else 1
+                ),
             )
 
-        writer.write(frame)
+
+        writer.write(
+            frame
+        )
+
 
     cap.release()
     writer.release()
 
+
     # -----------------------------------------------------
     # Browser-compatible H.264 output
     # -----------------------------------------------------
+
     command = [
         "ffmpeg",
         "-y",
@@ -479,22 +662,58 @@ def render_analysis_video(
         str(output_video),
     ]
 
+
     subprocess.run(
         command,
         check=True,
     )
 
+
     raw_output.unlink(
         missing_ok=True
     )
 
+
     print()
-    print("===== AUTOVUE VIDEO RENDERED =====")
-    print("Input :", input_video)
-    print("Result:", output_video)
-    print("Frames:", frame_index)
-    print("FPS   :", fps)
+    print(
+        "===== AUTOVUE VIDEO RENDERED ====="
+    )
+
+    print(
+        "Input :",
+        input_video,
+    )
+
+    print(
+        "Result:",
+        output_video,
+    )
+
+    print(
+        "Frames:",
+        frame_index,
+    )
+
+    print(
+        "FPS   :",
+        fps,
+    )
+
     print(
         "Size  :",
         f"{width}x{height}",
     )
+
+    print(
+        "Presentation mode:",
+        presentation_mode,
+    )
+
+    print(
+        "Overlay scale:",
+        round(
+            overlay_scale,
+            2,
+        ),
+    )
+

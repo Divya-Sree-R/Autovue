@@ -4781,3 +4781,439 @@ footer {
   }
 
 }
+
+
+/* =========================================================
+   M26UI GLOBAL READABILITY SCALE
+   Full-screen desktop dashboard
+   ========================================================= */
+
+/* General application text */
+
+.app-frame {
+  font-size: 16px;
+}
+
+.content {
+  padding:
+    32px 42px 44px;
+}
+
+
+/* =========================================================
+   TOP NAVIGATION
+   ========================================================= */
+
+.brand-copy strong {
+  font-size: 24px !important;
+}
+
+.brand-copy small {
+  font-size: 13px !important;
+}
+
+.primary-nav .nav-link {
+  padding:
+    11px 20px;
+
+  font-size: 14px !important;
+}
+
+.api-pill {
+  padding:
+    9px 14px;
+
+  font-size: 13px !important;
+}
+
+
+/* =========================================================
+   PAGE TITLES
+   ========================================================= */
+
+.route-eyebrow {
+  font-size: 13px !important;
+}
+
+.route-header h2,
+.topbar h2,
+.route-placeholder h2 {
+  font-size: 34px !important;
+  line-height: 1.15;
+}
+
+.route-header p,
+.topbar p,
+.route-placeholder > p {
+  font-size: 15px !important;
+  line-height: 1.6;
+}
+
+
+/* =========================================================
+   PANELS
+   ========================================================= */
+
+.panel-heading {
+  min-height: 76px;
+
+  padding:
+    17px 20px;
+}
+
+.panel-heading h3 {
+  font-size: 18px !important;
+}
+
+.panel-heading p {
+  margin-top: 5px;
+
+  font-size: 13px !important;
+}
+
+
+/* =========================================================
+   METRIC CARDS
+   ========================================================= */
+
+.metric-card,
+.result-metric {
+  min-height: 118px;
+
+  padding:
+    20px 22px;
+}
+
+.metric-card span,
+.result-metric span {
+  font-size: 13px !important;
+}
+
+.metric-card strong,
+.result-metric strong {
+  font-size: 38px !important;
+}
+
+
+/* =========================================================
+   VIDEO HEADERS
+   ========================================================= */
+
+.video-title {
+  min-height: 62px;
+
+  padding:
+    12px 16px;
+}
+
+.video-title strong {
+  font-size: 16px !important;
+}
+
+.video-title span {
+  margin-top: 3px;
+
+  font-size: 13px !important;
+}
+
+
+/* =========================================================
+   OVERVIEW INTELLIGENCE STRIP
+   ========================================================= */
+
+.video-intelligence-strip > div {
+  padding:
+    18px 20px;
+}
+
+.video-intelligence-strip span {
+  font-size: 12px !important;
+}
+
+.video-intelligence-strip strong {
+  margin-top: 7px;
+
+  font-size: 17px !important;
+}
+
+
+/* =========================================================
+   ANALYZE PAGE
+   ========================================================= */
+
+.analysis-workspace-grid {
+  gap: 20px;
+}
+
+.source-meta strong {
+  font-size: 16px !important;
+}
+
+.source-meta span {
+  font-size: 13px !important;
+}
+
+.pipeline-percent {
+  font-size: 30px !important;
+}
+
+.pipeline-step-copy strong {
+  font-size: 15px !important;
+}
+
+.pipeline-step-copy span {
+  font-size: 13px !important;
+  line-height: 1.45;
+}
+
+.pipeline-message {
+  padding:
+    14px 16px;
+
+  font-size: 14px !important;
+}
+
+.primary-button {
+  min-height: 46px;
+
+  font-size: 15px !important;
+}
+
+.secondary-button,
+.table-action {
+  min-height: 36px;
+
+  padding:
+    8px 13px;
+
+  font-size: 12px !important;
+}
+
+
+/* =========================================================
+   ANALYZE RECOGNITION RESULT
+   ========================================================= */
+
+.result-summary-grid > div {
+  min-height: 78px;
+
+  padding:
+    13px 15px;
+}
+
+.result-summary-grid span {
+  font-size: 11px !important;
+}
+
+.result-summary-grid strong {
+  margin-top: 5px;
+
+  font-size: 24px !important;
+}
+
+.primary-recognition {
+  padding:
+    22px 20px;
+}
+
+.primary-recognition > span {
+  font-size: 12px !important;
+}
+
+.primary-recognition > strong {
+  margin:
+    8px 0;
+
+  font-size: 34px !important;
+}
+
+.primary-recognition small {
+  font-size: 12px !important;
+}
+
+.recognized-row {
+  padding:
+    14px 16px;
+}
+
+.recognized-row strong {
+  font-size: 16px !important;
+}
+
+.recognized-row > div > span {
+  margin-top: 4px;
+
+  font-size: 12px !important;
+}
+
+.result-disclaimer {
+  padding:
+    13px 15px;
+
+  font-size: 12px !important;
+  line-height: 1.5;
+}
+
+
+/* =========================================================
+   TABLES
+   ========================================================= */
+
+th {
+  padding:
+    15px 17px;
+
+  font-size: 12px !important;
+}
+
+td {
+  padding:
+    15px 17px;
+
+  font-size: 14px !important;
+}
+
+.plate-value,
+.result-plate-cell strong {
+  font-size: 16px !important;
+}
+
+.result-plate-cell span {
+  font-size: 11px !important;
+}
+
+
+/* =========================================================
+   STATUS / BADGES
+   ========================================================= */
+
+.status,
+.job-status,
+.reference-badge,
+.workspace-badge,
+.output-ready {
+  padding:
+    6px 9px;
+
+  font-size: 11px !important;
+}
+
+
+/* =========================================================
+   RESULTS PAGE
+   ========================================================= */
+
+.results-toolbar h3 {
+  font-size: 19px !important;
+}
+
+.results-toolbar p {
+  font-size: 13px !important;
+}
+
+.results-search {
+  min-height: 46px;
+}
+
+.results-search input,
+.job-selector select {
+  font-size: 14px !important;
+}
+
+.result-filter {
+  min-height: 38px;
+
+  padding:
+    8px 14px;
+
+  font-size: 12px !important;
+}
+
+.inspect-link {
+  min-height: 36px;
+
+  padding:
+    8px 13px;
+
+  font-size: 12px !important;
+}
+
+
+/* =========================================================
+   EVIDENCE INFORMATION
+   ========================================================= */
+
+.evidence-plate {
+  font-size: 36px !important;
+}
+
+.cluster-label {
+  font-size: 12px !important;
+}
+
+.evidence-grid span {
+  font-size: 11px !important;
+}
+
+.evidence-grid strong {
+  font-size: 15px !important;
+}
+
+.evidence-explanation {
+  padding:
+    15px 16px;
+
+  font-size: 14px !important;
+
+  line-height: 1.6;
+}
+
+
+/* =========================================================
+   FOOTNOTES
+   ========================================================= */
+
+.results-footnote,
+footer {
+  font-size: 12px !important;
+}
+
+
+/* =========================================================
+   LARGE DESKTOP
+   ========================================================= */
+
+@media (min-width: 1500px) {
+
+  .content {
+    padding:
+      34px 46px 48px;
+  }
+
+  .analysis-output-grid {
+    grid-template-columns:
+      minmax(0, 1.7fr)
+      minmax(470px, 1fr);
+  }
+
+}
+
+
+/* =========================================================
+   SMALLER SCREENS
+   ========================================================= */
+
+@media (max-width: 900px) {
+
+  .content {
+    padding:
+      22px 20px 30px;
+  }
+
+  .route-header h2,
+  .topbar h2,
+  .route-placeholder h2 {
+    font-size: 28px !important;
+  }
+
+}
