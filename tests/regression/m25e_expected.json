@@ -1,0 +1,17 @@
+{
+  "baseline": "M25E_frozen_unseen_road",
+  "raw_tracker_ids": 45,
+  "selected_ocr_crops": 92,
+  "conservative_clusters": 43,
+  "parser_valid_crop_predictions": 15,
+  "clusters_with_complete_candidate": 8,
+  "unique_selected_candidate_strings": 6,
+  "statuses": {
+    "VERIFIED_FULL": 2,
+    "CORROBORATED_FRAGMENT": 2,
+    "NEEDS_REVIEW": 4,
+    "REJECTED": 35
+  },
+  "ground_truth_used": false,
+  "note": "Regression baseline for application refactoring. These values describe frozen M25 automatic outputs and are not end-to-end ANPR accuracy."
+}

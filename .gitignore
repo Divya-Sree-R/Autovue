@@ -57,3 +57,6 @@ experiments/detector_benchmark/*/*.jpg
 
 # Incomplete RT-DETR full-training attempt
 experiments/detector_benchmark/rtdetr_l/
+
+# AutoVue runtime application data
+app_data/
