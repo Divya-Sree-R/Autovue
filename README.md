@@ -1,6 +1,8 @@
 # AutoVue: Deep Learning-Based Indian ANPR Using Vehicle Tracking, OCR, and Multi-Frame Video Analysis
 
-<p align="center"><b>Leakage-safe detection · Multi-frame OCR · Evidence-aware recognition</b></p>
+<p align="center">
+  <b>Vehicle Detection · Plate Localization · Tracking · OCR · Multi-Frame Recognition</b>
+</p>
 
 <p align="center">
 
@@ -11,12 +13,12 @@
 
   <a href="https://pytorch.org/">
     <img alt="PyTorch"
-         src="https://img.shields.io/badge/PyTorch-2.14.1%20%2B%20CUDA-EE4C2C?logo=pytorch&logoColor=white">
+         src="https://img.shields.io/badge/PyTorch-GPU%20Inference-EE4C2C?logo=pytorch&logoColor=white">
   </a>
 
   <a href="https://docs.ultralytics.com/models/yolo11/">
     <img alt="YOLO11n"
-         src="https://img.shields.io/badge/YOLO11n-Vehicle%20%26%20Plate%20Detection-111111?logo=ultralytics&logoColor=white">
+         src="https://img.shields.io/badge/YOLO11n-Vehicle%20%26%20Plate%20Detection-111111">
   </a>
 
   <a href="https://docs.ultralytics.com/modes/track/">
@@ -31,12 +33,26 @@
 
   <a href="https://opencv.org/">
     <img alt="OpenCV"
-         src="https://img.shields.io/badge/OpenCV-Video%20%26%20Image%20Processing-5C3EE8?logo=opencv&logoColor=white">
+         src="https://img.shields.io/badge/OpenCV-Video%20Processing-5C3EE8?logo=opencv&logoColor=white">
+  </a>
+
+</p>
+
+<p align="center">
+
+  <a href="./outputs/M23_ocr_final">
+    <img alt="OCR Study"
+         src="https://img.shields.io/badge/OCR-Frozen%20Evaluation-2E8B57">
   </a>
 
   <a href="./outputs/M25_final_road_eval">
-    <img alt="AutoVue Research Status"
-         src="https://img.shields.io/badge/AutoVue-M25E%20Research%20Pipeline%20Complete-0A8F8F">
+    <img alt="Temporal Consensus"
+         src="https://img.shields.io/badge/Multi--Frame-Temporal%20Consensus-008B8B">
+  </a>
+
+  <a href="./outputs/M25_final_road_eval">
+    <img alt="Research Status"
+         src="https://img.shields.io/badge/Research%20Pipeline-M25E%20Complete-0A8F8F">
   </a>
 
 </p>
