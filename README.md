@@ -935,22 +935,21 @@ Its contribution is the **system design and experimental methodology**, includin
 
 ---
 
-## Safe Interpretation of Results
+## Interpretation and Scope of Reported Results
 
-❌ **“YOLO11n is the best detector.”**  
-✅ Among the detectors benchmarked under the same leakage-safe protocol, YOLO11n gave the preferred accuracy–efficiency trade-off.
+The reported metrics in AutoVue correspond to different stages of the pipeline and should be interpreted within their respective evaluation settings.
 
-❌ **“AutoVue ANPR accuracy is 64.29%.”**  
-✅ 64.29% is exact recognition on 14 held-out ground-truth plate crops for the frozen static OCR subsystem.
+- **Detector comparison:** YOLO11n was selected because it provided the preferred accuracy–efficiency trade-off among the models evaluated under the same leakage-safe benchmark. This does not imply universal superiority over all object detectors.
 
-❌ **“VERIFIED_FULL means the plate is definitely correct.”**  
-✅ VERIFIED_FULL means the same complete parser-valid candidate appeared in at least two independent frames.
+- **Static OCR evaluation:** The reported **64.29% exact-match accuracy** was obtained on **14 held-out ground-truth plate crops** using the frozen OCR pipeline. This value represents OCR subsystem performance and should not be interpreted as complete end-to-end ANPR accuracy.
 
-❌ **“43 clusters means 43 physical vehicles.”**  
-✅ M25 produced 43 conservative track clusters; physical identity is not fully established.
+- **Temporal evidence status:** `VERIFIED_FULL` indicates that the same complete parser-valid plate candidate was observed in at least two independent frames. It represents stronger temporal evidence, but does not by itself guarantee ground-truth correctness.
 
-❌ **“Domain adaptation improved the detector.”**  
-✅ The tested small adaptation experiment was rejected because it did not show convincing improvement.
+- **Track clustering:** The **43 clusters** produced during M25 are conservative track clusters created from tracker outputs. They should not be interpreted as 43 confirmed unique physical vehicles.
+
+- **Domain adaptation experiment:** The tested small-scale road-domain adaptation experiment did not demonstrate convincing improvement and was therefore not retained in the final detector configuration.
+
+Final end-to-end road-video ANPR accuracy will be reported only after the planned human ground-truth annotation and M25G evaluation.
 
 ---
 
