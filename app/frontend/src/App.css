@@ -4676,3 +4676,108 @@ footer {
   }
 
 }
+
+
+/* =========================================================
+   OVERVIEW EXTERNAL VIDEO INTELLIGENCE
+   Keep temporal information outside the video frame.
+   ========================================================= */
+
+.video-intelligence-strip {
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      5,
+      minmax(
+        0,
+        1fr
+      )
+    );
+
+  gap: 1px;
+
+  background: #e4eaf1;
+
+  border-top:
+    1px solid #e2e8f0;
+}
+
+
+.video-intelligence-item {
+  min-height: 92px;
+
+  padding:
+    17px 18px;
+
+  display: flex;
+
+  flex-direction: column;
+
+  justify-content: center;
+
+  gap: 7px;
+
+  background: #ffffff;
+}
+
+
+.video-intelligence-item span {
+  color: #7d8b9f;
+
+  font-size: 12px;
+
+  font-weight: 600;
+}
+
+
+.video-intelligence-item strong {
+  color: #1c304e;
+
+  font-size: 15px;
+
+  font-weight: 720;
+}
+
+
+.video-intelligence-item
+.telemetry-plate {
+  color: #1557b7;
+
+  font-family:
+    "SFMono-Regular",
+    Consolas,
+    "Liberation Mono",
+    monospace;
+
+  font-size: 19px;
+
+  letter-spacing:
+    0.025em;
+}
+
+
+@media (max-width: 950px) {
+
+  .video-intelligence-strip {
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(
+          0,
+          1fr
+        )
+      );
+  }
+
+}
+
+
+@media (max-width: 560px) {
+
+  .video-intelligence-strip {
+    grid-template-columns:
+      1fr;
+  }
+
+}

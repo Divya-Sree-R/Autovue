@@ -9,6 +9,9 @@ from pathlib import Path
 from autovue.renderer import (
     render_analysis_video,
 )
+from autovue.presentation_renderer import (
+    render_presentation_video,
+)
 from autovue.result_loader import (
     load_frozen_m25_result,
 )
@@ -212,6 +215,75 @@ def render_job_video(
     return analyzed_video
 
 
+def render_job_presentation(
+    *,
+    job_dir: Path,
+) -> Path:
+    """
+    Create the clean dashboard/presentation video.
+
+    This does not alter the frozen tracking or analyzed
+    research artifacts.
+    """
+
+    job_dir = (
+        job_dir
+        .expanduser()
+        .resolve()
+    )
+
+    original_video = (
+        job_dir
+        / "input"
+        / "original.mp4"
+    )
+
+    tracking_video = (
+        job_dir
+        / "video"
+        / "tracking.mp4"
+    )
+
+    presentation_video = (
+        job_dir
+        / "video"
+        / "presentation.mp4"
+    )
+
+    if not original_video.exists():
+        raise FileNotFoundError(
+            original_video
+        )
+
+    if not tracking_video.exists():
+        raise FileNotFoundError(
+            tracking_video
+        )
+
+    render_presentation_video(
+        original_video=original_video,
+        tracking_video=tracking_video,
+        result_json=(
+            job_dir
+            / "canonical_result.json"
+        ),
+        output_video=presentation_video,
+    )
+
+    if not presentation_video.exists():
+        raise RuntimeError(
+            "Presentation renderer completed but "
+            "presentation.mp4 was not created."
+        )
+
+    print(
+        "Presentation video:",
+        presentation_video,
+    )
+
+    return presentation_video
+
+
 def finalize_job(
     *,
     job_dir: Path,
@@ -250,6 +322,12 @@ def finalize_job(
         )
     )
 
+    presentation = (
+        render_job_presentation(
+            job_dir=job_dir,
+        )
+    )
+
     print()
     print("=" * 72)
     print(
@@ -263,6 +341,9 @@ def finalize_job(
 
         "analyzed_video":
             analyzed,
+
+        "presentation_video":
+            presentation,
     }
 
 

@@ -115,6 +115,9 @@ def reference_videos():
 
         "analyzed":
             "/api/reference/video/analyzed",
+
+        "presentation":
+            "/api/reference/video/presentation",
     }
 
 
@@ -178,4 +181,42 @@ def plate_crop(
     return FileResponse(
         path,
         media_type="image/jpeg",
+    )
+
+
+# ---------------------------------------------------------
+# Presentation-only video
+#
+# This keeps the frozen research artifacts untouched.
+# The large M25B tracking HUD is removed for dashboard use.
+# ---------------------------------------------------------
+
+@router.get(
+    "/video/presentation"
+)
+def reference_presentation_video():
+
+    presentation_path = (
+        Path(__file__)
+        .resolve()
+        .parents[3]
+        / "app_data"
+        / "jobs"
+        / "m25_reference"
+        / "video"
+        / "presentation.mp4"
+    )
+
+    if not presentation_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                "Presentation video "
+                "is not available."
+            ),
+        )
+
+    return FileResponse(
+        presentation_path,
+        media_type="video/mp4",
     )

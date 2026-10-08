@@ -1223,10 +1223,10 @@ function AnalyzePage() {
 
                 <video
                   key={
-                    selectedMedia.analyzed
+                    selectedMedia.presentation
                   }
                   src={
-                    selectedMedia.analyzed
+                    selectedMedia.presentation
                   }
                   controls
                   preload="metadata"

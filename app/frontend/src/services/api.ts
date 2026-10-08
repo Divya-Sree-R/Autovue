@@ -43,6 +43,9 @@ export const mediaUrls = {
 
   analyzed:
     `${API_BASE}/api/reference/video/analyzed`,
+
+  presentation:
+    `${API_BASE}/api/reference/video/presentation`,
 };
 
 export function cropUrl(filename: string) {
@@ -243,6 +246,9 @@ export function jobMediaUrls(
 
     analyzed:
       `${API_BASE}/api/jobs/${jobId}/video/analyzed`,
+
+    presentation:
+      `${API_BASE}/api/jobs/${jobId}/video/presentation`,
   };
 }
 

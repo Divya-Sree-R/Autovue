@@ -209,6 +209,9 @@ def job_videos(
 
         "analyzed":
             f"{base}/analyzed",
+
+        "presentation":
+            f"{base}/presentation",
     }
 
 
@@ -276,6 +279,30 @@ def job_analyzed_video(
         / "video"
         / "analyzed.mp4",
         "Analyzed AutoVue video",
+    )
+
+    return FileResponse(
+        path,
+        media_type="video/mp4",
+    )
+
+
+@router.get(
+    "/{job_id}/video/presentation"
+)
+def job_presentation_video(
+    job_id: str,
+):
+
+    job_dir = _job_dir(
+        job_id
+    )
+
+    path = _require_file(
+        job_dir
+        / "video"
+        / "presentation.mp4",
+        "Presentation AutoVue video",
     )
 
     return FileResponse(
