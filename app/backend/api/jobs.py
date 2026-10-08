@@ -19,6 +19,12 @@ from app.backend.services.jobs import (
     save_job_manifest,
 )
 
+from app.backend.worker.analysis import (
+    InvalidJobStateError,
+    WorkerBusyError,
+    start_analysis_job,
+)
+
 
 router = APIRouter(
     prefix="/api/jobs",
@@ -44,6 +50,37 @@ def get_job(
         raise HTTPException(
             status_code=404,
             detail="Job not found.",
+        )
+
+
+@router.post(
+    "/{job_id}/run",
+    status_code=202,
+)
+def run_job(
+    job_id: str,
+):
+    try:
+        return start_analysis_job(
+            job_id
+        )
+
+    except FileNotFoundError:
+        raise HTTPException(
+            status_code=404,
+            detail="Job not found.",
+        )
+
+    except InvalidJobStateError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail=str(exc),
+        )
+
+    except WorkerBusyError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail=str(exc),
         )
 
 
