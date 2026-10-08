@@ -748,3 +748,350 @@ footer {
   font-size: 13px;
   line-height: 1.6;
 }
+
+
+/* Analyze Video */
+
+.route-header {
+  margin-bottom: 20px;
+}
+
+.route-header h2 {
+  margin: 0;
+
+  font-size: 24px;
+  font-weight: 650;
+}
+
+.route-header p {
+  margin: 7px 0 0;
+
+  color: #7890a6;
+  font-size: 13px;
+}
+
+.upload-grid {
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 1.5fr)
+    minmax(270px, 0.7fr);
+
+  gap: 15px;
+}
+
+.upload-content {
+  padding: 18px;
+}
+
+.upload-dropzone {
+  min-height: 220px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  gap: 8px;
+
+  border:
+    1px dashed
+    rgba(73, 164, 238, 0.38);
+
+  border-radius: 10px;
+
+  background:
+    rgba(28, 119, 190, 0.045);
+
+  cursor: pointer;
+
+  transition:
+    border 140ms ease,
+    background 140ms ease;
+}
+
+.upload-dropzone:hover {
+  border-color:
+    rgba(73, 164, 238, 0.75);
+
+  background:
+    rgba(28, 119, 190, 0.08);
+}
+
+.upload-dropzone input {
+  display: none;
+}
+
+.upload-dropzone strong {
+  font-size: 14px;
+}
+
+.upload-dropzone span {
+  color: #71879b;
+
+  font-size: 11px;
+}
+
+.upload-icon {
+  width: 42px;
+  height: 42px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 50%;
+
+  background:
+    rgba(41, 151, 240, 0.12);
+
+  color: #62baff;
+
+  font-size: 22px;
+}
+
+.selected-file {
+  margin-top: 13px;
+  padding: 12px;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  background:
+    rgba(255, 255, 255, 0.03);
+
+  border:
+    1px solid rgba(255,255,255,0.065);
+
+  border-radius: 8px;
+}
+
+.selected-file div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.selected-file strong {
+  font-size: 12px;
+}
+
+.selected-file span {
+  color: #71879b;
+  font-size: 10px;
+}
+
+.primary-button,
+.secondary-button {
+  border-radius: 7px;
+
+  cursor: pointer;
+
+  font-weight: 600;
+}
+
+.primary-button {
+  width: 100%;
+
+  margin-top: 14px;
+  padding: 11px 14px;
+
+  color: white;
+
+  background:
+    linear-gradient(
+      135deg,
+      #188fe3,
+      #2563eb
+    );
+
+  border: 0;
+}
+
+.primary-button:disabled {
+  opacity: 0.45;
+
+  cursor: not-allowed;
+}
+
+.secondary-button {
+  padding: 7px 9px;
+
+  color: #9fb1c3;
+
+  background:
+    rgba(255, 255, 255, 0.04);
+
+  border:
+    1px solid rgba(255,255,255,0.08);
+}
+
+.upload-error {
+  margin-top: 12px;
+  padding: 10px;
+
+  color: #ff9d9d;
+
+  background:
+    rgba(219, 60, 60, 0.08);
+
+  border-left:
+    3px solid #cf5151;
+
+  font-size: 11px;
+}
+
+.upload-note {
+  margin-top: 12px;
+
+  color: #657b90;
+
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.workflow-list {
+  padding: 17px;
+}
+
+.workflow-stage {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  padding: 9px 0;
+
+  color: #91a5b9;
+
+  border-bottom:
+    1px solid rgba(255,255,255,0.045);
+}
+
+.workflow-stage:last-child {
+  border-bottom: 0;
+}
+
+.workflow-stage span {
+  width: 24px;
+  height: 24px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 50%;
+
+  background:
+    rgba(41, 151, 240, 0.10);
+
+  color: #5db7ff;
+
+  font-size: 9px;
+}
+
+.workflow-stage strong {
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.created-job,
+.recent-jobs {
+  margin-top: 15px;
+}
+
+.job-status {
+  display: inline-block;
+
+  padding: 4px 7px;
+
+  border-radius: 6px;
+
+  color: #6fc1ff;
+
+  background:
+    rgba(38, 139, 222, 0.12);
+
+  font-size: 9px;
+  font-weight: 750;
+
+  letter-spacing: 0.035em;
+}
+
+.job-details {
+  padding: 17px;
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+
+  gap: 1px;
+
+  background:
+    rgba(255,255,255,0.045);
+}
+
+.job-details > div {
+  padding: 11px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+
+  background: #091624;
+}
+
+.job-details span {
+  color: #687e93;
+
+  font-size: 9px;
+}
+
+.job-details strong {
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+
+  font-size: 11px;
+}
+
+.job-id {
+  font-family:
+    "SFMono-Regular",
+    Consolas,
+    "Liberation Mono",
+    monospace;
+}
+
+.job-message {
+  padding: 12px 17px;
+
+  color: #8096aa;
+
+  font-size: 11px;
+}
+
+.empty-jobs {
+  padding: 24px;
+
+  color: #6d8398;
+
+  font-size: 12px;
+}
+
+.jobs-table-wrap {
+  overflow-x: auto;
+}
+
+
+@media (max-width: 1000px) {
+
+  .upload-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .job-details {
+    grid-template-columns:
+      repeat(2, 1fr);
+  }
+
+}

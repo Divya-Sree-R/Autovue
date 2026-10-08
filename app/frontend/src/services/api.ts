@@ -51,3 +51,93 @@ export function cropUrl(filename: string) {
     encodeURIComponent(filename)
   );
 }
+
+
+export interface AnalysisJob {
+  job_id: string;
+  status: string;
+  progress: number;
+  message: string;
+  original_filename: string;
+  stored_filename: string;
+  content_type: string | null;
+  size_bytes: number;
+  created_at: string;
+  updated_at: string;
+  error: string | null;
+}
+
+
+export async function getJobs(): Promise<AnalysisJob[]> {
+  const response = await fetch(
+    `${API_BASE}/api/jobs`
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to load jobs: ${response.status}`
+    );
+  }
+
+  const data = await response.json();
+
+  return data.jobs;
+}
+
+
+export async function getJob(
+  jobId: string
+): Promise<AnalysisJob> {
+
+  const response = await fetch(
+    `${API_BASE}/api/jobs/${jobId}`
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to load job ${jobId}`
+    );
+  }
+
+  return response.json();
+}
+
+
+export async function uploadVideo(
+  file: File
+): Promise<AnalysisJob> {
+
+  const formData = new FormData();
+
+  formData.append(
+    "file",
+    file
+  );
+
+  const response = await fetch(
+    `${API_BASE}/api/jobs`,
+    {
+      method: "POST",
+      body: formData,
+    }
+  );
+
+  if (!response.ok) {
+    let message =
+      `Upload failed: ${response.status}`;
+
+    try {
+      const data = await response.json();
+
+      if (data.detail) {
+        message = data.detail;
+      }
+    } catch {
+      // Keep default error message.
+    }
+
+    throw new Error(message);
+  }
+
+  return response.json();
+}
