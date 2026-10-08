@@ -74,11 +74,20 @@ def _bool(value: str | None) -> bool:
     if value is None:
         return False
 
-    return value.strip().lower() in {
-        "true",
-        "1",
-        "yes",
-    }
+    value = value.strip().lower()
+
+    if value in {
+        "",
+        "false",
+        "0",
+        "none",
+        "null",
+        "nan",
+        "no",
+    }:
+        return False
+
+    return True
 
 
 def _member_tracks(
