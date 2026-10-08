@@ -1,4 +1,4 @@
-# AutoVue — Reliability-Aware Indian ANPR from Road Video
+# AutoVue: Deep Learning-Based Indian ANPR Using Vehicle Tracking, OCR, and Multi-Frame Video Analysis
 
 <p align="center"><b>Leakage-safe detection · Multi-frame OCR · Evidence-aware recognition</b></p>
 
