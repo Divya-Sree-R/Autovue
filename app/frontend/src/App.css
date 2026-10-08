@@ -3907,3 +3907,772 @@ footer {
 
   font-size: 11px;
 }
+
+
+/* =========================================================
+   M26UI-C
+   RECOGNITION RESULTS
+   ========================================================= */
+
+.results-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+
+.job-selector {
+  min-width: 280px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+
+.job-selector span {
+  color: #7c899b;
+
+  font-size: 10px;
+  font-weight: 650;
+
+  text-transform: uppercase;
+  letter-spacing: 0.055em;
+}
+
+
+.job-selector select {
+  min-height: 43px;
+
+  padding:
+    0 13px;
+
+  color: #263a56;
+
+  background: white;
+
+  border:
+    1px solid #dbe4ee;
+
+  border-radius: 11px;
+
+  outline: none;
+
+  font-size: 12px;
+}
+
+
+.results-summary {
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      5,
+      minmax(
+        0,
+        1fr
+      )
+    );
+
+  gap: 14px;
+
+  margin-bottom: 20px;
+}
+
+
+.result-metric {
+  min-height: 108px;
+
+  padding:
+    18px 19px;
+
+  background: white;
+
+  border:
+    1px solid #e1e8f0;
+
+  border-radius: 17px;
+
+  box-shadow:
+    0 7px 20px
+    rgba(
+      34,
+      54,
+      86,
+      0.04
+    );
+}
+
+
+.result-metric span {
+  display: block;
+
+  margin-bottom: 11px;
+
+  color: #7b889a;
+
+  font-size: 11px;
+  font-weight: 650;
+}
+
+
+.result-metric strong {
+  color: #17284c;
+
+  font-size: 32px;
+
+  letter-spacing: -0.035em;
+}
+
+
+.result-metric-green {
+  background:
+    linear-gradient(
+      145deg,
+      #ffffff,
+      #f1fbf6
+    );
+}
+
+
+.result-metric-green strong {
+  color: #158159;
+}
+
+
+.result-metric-blue {
+  background:
+    linear-gradient(
+      145deg,
+      #ffffff,
+      #f1f8ff
+    );
+}
+
+
+.result-metric-blue strong {
+  color: #176fc0;
+}
+
+
+.result-metric-amber {
+  background:
+    linear-gradient(
+      145deg,
+      #ffffff,
+      #fff8ed
+    );
+}
+
+
+.result-metric-amber strong {
+  color: #b87518;
+}
+
+
+.results-browser {
+  overflow: visible;
+}
+
+
+.results-toolbar {
+  min-height: 82px;
+
+  padding:
+    17px 20px;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 18px;
+
+  border-bottom:
+    1px solid #e7edf3;
+}
+
+
+.results-toolbar h3 {
+  margin: 0;
+
+  color: #182842;
+
+  font-size: 17px;
+}
+
+
+.results-toolbar p {
+  margin:
+    5px 0 0;
+
+  color: #8793a4;
+
+  font-size: 11px;
+}
+
+
+.results-search {
+  width: min(
+    360px,
+    40vw
+  );
+
+  min-height: 42px;
+
+  padding:
+    0 13px;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 9px;
+
+  background: #f7f9fc;
+
+  border:
+    1px solid #e1e8f0;
+
+  border-radius: 11px;
+}
+
+
+.results-search > span {
+  color: #8391a5;
+
+  font-size: 18px;
+}
+
+
+.results-search input {
+  width: 100%;
+
+  padding: 0;
+
+  color: #243752;
+
+  background: transparent;
+
+  border: 0;
+
+  outline: 0;
+
+  font-size: 12px;
+}
+
+
+.results-search input::placeholder {
+  color: #9aa6b5;
+}
+
+
+.results-filter-row {
+  padding:
+    13px 20px;
+
+  display: flex;
+
+  gap: 8px;
+
+  overflow-x: auto;
+
+  border-bottom:
+    1px solid #edf1f5;
+}
+
+
+.result-filter {
+  flex: 0 0 auto;
+
+  min-height: 34px;
+
+  padding:
+    7px 12px;
+
+  color: #63758c;
+
+  background: white;
+
+  border:
+    1px solid #dfe7ef;
+
+  border-radius: 999px;
+
+  cursor: pointer;
+
+  font-size: 10px;
+
+  font-weight: 650;
+}
+
+
+.result-filter-active {
+  color: #1f5fc7;
+
+  background: #edf5ff;
+
+  border-color: #d5e6ff;
+}
+
+
+.results-table-wrap {
+  overflow-x: auto;
+}
+
+
+.results-table {
+  min-width: 1040px;
+}
+
+
+.result-plate-cell {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 4px;
+}
+
+
+.result-plate-cell strong {
+  color: #17284c;
+
+  font-family:
+    "SFMono-Regular",
+    Consolas,
+    "Liberation Mono",
+    monospace;
+
+  font-size: 15px;
+
+  letter-spacing: 0.02em;
+}
+
+
+.result-plate-cell span {
+  color: #98a3b2;
+
+  font-size: 9px;
+}
+
+
+.inspect-link,
+.results-link-button {
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  text-decoration: none;
+
+  font-weight: 650;
+}
+
+
+.inspect-link {
+  min-height: 32px;
+
+  padding:
+    6px 11px;
+
+  color: #275fa8;
+
+  background: #f5f9ff;
+
+  border:
+    1px solid #dae7f7;
+
+  border-radius: 8px;
+
+  font-size: 10px;
+}
+
+
+.inspect-link:hover {
+  background: #edf5ff;
+}
+
+
+.no-results {
+  padding: 42px 20px;
+
+  color: #8491a3;
+
+  text-align: center;
+
+  font-size: 13px;
+}
+
+
+.results-empty-state {
+  min-height: 310px;
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 8px;
+
+  text-align: center;
+}
+
+
+.results-empty-state strong {
+  color: #293c58;
+
+  font-size: 17px;
+}
+
+
+.results-empty-state span {
+  color: #8491a3;
+
+  font-size: 12px;
+}
+
+
+.results-link-button {
+  margin-top: 8px;
+
+  min-height: 40px;
+
+  padding:
+    9px 15px;
+
+  color: white;
+
+  background: #2563eb;
+
+  border-radius: 10px;
+
+  font-size: 12px;
+}
+
+
+.results-footnote {
+  margin-top: 14px;
+
+  color: #8895a6;
+
+  text-align: center;
+
+  font-size: 10px;
+}
+
+
+@media (max-width: 1000px) {
+
+  .results-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+
+  .job-selector {
+    width: 100%;
+  }
+
+
+  .results-summary {
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(
+          0,
+          1fr
+        )
+      );
+  }
+
+}
+
+
+@media (max-width: 700px) {
+
+  .results-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+
+  .results-search {
+    width: 100%;
+  }
+
+
+  .results-summary {
+    grid-template-columns: 1fr 1fr;
+  }
+
+}
+
+
+/* =========================================================
+   M26UI GLOBAL TYPOGRAPHY
+   Larger desktop-readable AutoVue scale
+   ========================================================= */
+
+body {
+  font-size: 16px;
+}
+
+
+/* Navigation */
+
+.brand-copy strong {
+  font-size: 22px;
+}
+
+.brand-copy small {
+  font-size: 12px;
+}
+
+.primary-nav .nav-link {
+  font-size: 14px;
+}
+
+.api-pill {
+  font-size: 12px;
+}
+
+
+/* Page headings */
+
+.topbar h2,
+.route-header h2,
+.route-placeholder h2 {
+  font-size: 34px;
+}
+
+.topbar p,
+.route-header p,
+.route-placeholder > p {
+  font-size: 15px;
+}
+
+.route-eyebrow {
+  font-size: 12px;
+}
+
+
+/* Panel headings */
+
+.panel-heading h3,
+.results-toolbar h3 {
+  font-size: 18px;
+}
+
+.panel-heading p,
+.results-toolbar p {
+  font-size: 13px;
+}
+
+.reference-badge,
+.workspace-badge,
+.output-ready {
+  font-size: 11px;
+}
+
+
+/* Metrics */
+
+.metric-card span,
+.result-metric span {
+  font-size: 13px;
+}
+
+.metric-card strong,
+.result-metric strong {
+  font-size: 36px;
+}
+
+
+/* Tables */
+
+th {
+  font-size: 12px;
+}
+
+td {
+  font-size: 14px;
+}
+
+.plate-value,
+.result-plate-cell strong {
+  font-size: 16px;
+}
+
+.result-plate-cell span {
+  font-size: 11px;
+}
+
+
+/* Buttons + inputs */
+
+.primary-button {
+  font-size: 15px;
+}
+
+.secondary-button,
+.table-action,
+.inspect-link,
+.result-filter {
+  font-size: 12px;
+}
+
+.job-selector span {
+  font-size: 11px;
+}
+
+.job-selector select,
+.results-search input {
+  font-size: 13px;
+}
+
+
+/* Status chips */
+
+.status,
+.job-status {
+  font-size: 10px;
+}
+
+
+/* Analyze workspace */
+
+.source-meta strong {
+  font-size: 15px;
+}
+
+.source-meta span {
+  font-size: 12px;
+}
+
+.source-empty-state strong {
+  font-size: 18px;
+}
+
+.source-empty-state span {
+  font-size: 13px;
+}
+
+.pipeline-percent {
+  font-size: 24px;
+}
+
+.pipeline-step-copy strong {
+  font-size: 14px;
+}
+
+.pipeline-step-copy span {
+  font-size: 12px;
+}
+
+.pipeline-message {
+  font-size: 13px;
+}
+
+.recognition-empty strong {
+  font-size: 16px;
+}
+
+.recognition-empty span {
+  font-size: 13px;
+}
+
+.result-summary-grid span {
+  font-size: 10px;
+}
+
+.result-summary-grid strong {
+  font-size: 22px;
+}
+
+.primary-recognition > span {
+  font-size: 11px;
+}
+
+.primary-recognition > strong {
+  font-size: 32px;
+}
+
+.primary-recognition small {
+  font-size: 11px;
+}
+
+.recognized-row strong {
+  font-size: 15px;
+}
+
+.recognized-row > div > span {
+  font-size: 11px;
+}
+
+.result-disclaimer,
+.results-footnote {
+  font-size: 11px;
+}
+
+
+/* Evidence / overview */
+
+.cluster-label,
+.evidence-grid span {
+  font-size: 11px;
+}
+
+.evidence-grid strong {
+  font-size: 14px;
+}
+
+.evidence-explanation {
+  font-size: 13px;
+}
+
+.evidence-plate {
+  font-size: 34px;
+}
+
+
+/* Video labels */
+
+.video-title strong {
+  font-size: 15px;
+}
+
+.video-title span {
+  font-size: 12px;
+}
+
+
+/* Footer */
+
+footer {
+  font-size: 12px;
+}
+
+
+@media (max-width: 700px) {
+
+  .topbar h2,
+  .route-header h2,
+  .route-placeholder h2 {
+    font-size: 28px;
+  }
+
+  th {
+    font-size: 11px;
+  }
+
+  td {
+    font-size: 13px;
+  }
+
+}
