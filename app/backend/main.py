@@ -6,6 +6,9 @@ from fastapi.middleware.cors import (
 from app.backend.api.reference import (
     router as reference_router,
 )
+from app.backend.api.jobs import (
+    router as jobs_router,
+)
 
 
 app = FastAPI(
@@ -54,4 +57,8 @@ def health():
 
 app.include_router(
     reference_router
+)
+
+app.include_router(
+    jobs_router
 )
