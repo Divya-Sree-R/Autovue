@@ -1,575 +1,544 @@
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+import {
+  getHealth,
+  getJobs,
+} from "../services/api";
+
+import type {
+  AnalysisJob,
+  HealthResponse,
+} from "../services/api";
+
+
+const RUNNING_STATUSES =
+  new Set([
+    "QUEUED",
+    "DETECTING_TRACKING",
+    "OCR_PROCESSING",
+    "TEMPORAL_CONSENSUS",
+    "RENDERING",
+  ]);
+
+
+function humanStatus(
+  status: string
+) {
+  return status
+    .replaceAll("_", " ")
+    .toLowerCase()
+    .replace(
+      /\b\w/g,
+      (letter) =>
+        letter.toUpperCase()
+    );
+}
+
+
 function SystemPage() {
+  const [jobs, setJobs] =
+    useState<AnalysisJob[]>([]);
+
+  const [health, setHealth] =
+    useState<HealthResponse | null>(
+      null
+    );
+
+  const [healthError, setHealthError] =
+    useState(false);
+
+
+  useEffect(() => {
+    let cancelled = false;
+
+
+    async function refresh() {
+      try {
+        const [
+          healthResult,
+          jobResult,
+        ] = await Promise.all([
+          getHealth(),
+          getJobs(),
+        ]);
+
+        if (cancelled) {
+          return;
+        }
+
+        setHealth(
+          healthResult
+        );
+
+        setJobs(
+          jobResult
+        );
+
+        setHealthError(
+          false
+        );
+
+      } catch {
+        if (!cancelled) {
+          setHealthError(
+            true
+          );
+        }
+      }
+    }
+
+
+    void refresh();
+
+
+    const interval =
+      window.setInterval(
+        () => {
+          void refresh();
+        },
+        4000
+      );
+
+
+    return () => {
+      cancelled = true;
+
+      window.clearInterval(
+        interval
+      );
+    };
+  }, []);
+
+
+  const activeJob =
+    useMemo(
+      () =>
+        jobs.find(
+          (job) =>
+            RUNNING_STATUSES.has(
+              job.status
+            )
+        ) ?? null,
+      [jobs]
+    );
+
+
+  const completed =
+    jobs.filter(
+      (job) =>
+        job.status
+        === "COMPLETED"
+    ).length;
+
+
+  const failed =
+    jobs.filter(
+      (job) =>
+        job.status
+        === "FAILED"
+    ).length;
+
+
   return (
-    <div className="system-page">
+    <div className="system-monitor-page">
 
-      <header className="route-header">
+      <header className="route-header system-monitor-header">
 
-        <span className="route-eyebrow">
-          AutoVue Platform
-        </span>
+        <div>
 
-        <h2>
-          System Architecture
-        </h2>
+          <span className="route-eyebrow">
+            AutoVue
+          </span>
 
-        <p>
-          End-to-end architecture for Indian road-video
-          number-plate recognition using detection,
-          tracking, OCR and temporal evidence.
-        </p>
+          <h2>
+            System Health
+          </h2>
+
+          <p>
+            Live operational status of
+            the AutoVue analysis service.
+          </p>
+
+        </div>
+
+
+        <div
+          className={
+            healthError
+              ? (
+                  "system-health-pill "
+                  + "system-health-offline"
+                )
+              : "system-health-pill"
+          }
+        >
+
+          <span />
+
+          {healthError
+            ? "Service unavailable"
+            : health
+              ? "System operational"
+              : "Checking system"}
+
+        </div>
 
       </header>
 
 
-      <section className="panel system-flow-panel">
+      <section className="system-kpi-grid">
+
+        <article className="system-kpi">
+
+          <div className="system-kpi-icon">
+            API
+          </div>
+
+          <div>
+
+            <span>
+              API
+            </span>
+
+            <strong>
+              {healthError
+                ? "Offline"
+                : "Online"}
+            </strong>
+
+            <small>
+              Backend service
+            </small>
+
+          </div>
+
+        </article>
+
+
+        <article className="system-kpi">
+
+          <div className="system-kpi-icon">
+            GPU
+          </div>
+
+          <div>
+
+            <span>
+              Analysis Worker
+            </span>
+
+            <strong>
+              {activeJob
+                ? "Processing"
+                : "Ready"}
+            </strong>
+
+            <small>
+              GPU inference
+            </small>
+
+          </div>
+
+        </article>
+
+
+        <article className="system-kpi">
+
+          <div className="system-kpi-icon">
+            ✓
+          </div>
+
+          <div>
+
+            <span>
+              Completed
+            </span>
+
+            <strong>
+              {completed}
+            </strong>
+
+            <small>
+              Analysis jobs
+            </small>
+
+          </div>
+
+        </article>
+
+
+        <article className="system-kpi">
+
+          <div
+            className={
+              failed > 0
+                ? (
+                    "system-kpi-icon "
+                    + "system-kpi-icon-warning"
+                  )
+                : "system-kpi-icon"
+            }
+          >
+            !
+          </div>
+
+          <div>
+
+            <span>
+              Failed
+            </span>
+
+            <strong>
+              {failed}
+            </strong>
+
+            <small>
+              Jobs requiring attention
+            </small>
+
+          </div>
+
+        </article>
+
+      </section>
+
+
+      {activeJob ? (
+
+        <section className="panel system-live-panel">
+
+          <div className="panel-heading">
+
+            <div>
+
+              <h3>
+                Active Analysis
+              </h3>
+
+              <p>
+                Currently processing
+                road video
+              </p>
+
+            </div>
+
+
+            <span className="system-active-badge">
+              ● Processing
+            </span>
+
+          </div>
+
+
+          <div className="system-active-job">
+
+            <div>
+
+              <span>
+                Video
+              </span>
+
+              <strong>
+                {
+                  activeJob
+                    .original_filename
+                }
+              </strong>
+
+            </div>
+
+
+            <div>
+
+              <span>
+                Stage
+              </span>
+
+              <strong>
+                {
+                  humanStatus(
+                    activeJob.status
+                  )
+                }
+              </strong>
+
+            </div>
+
+
+            <div>
+
+              <span>
+                Progress
+              </span>
+
+              <strong>
+                {
+                  activeJob.progress
+                }%
+              </strong>
+
+            </div>
+
+          </div>
+
+
+          <div
+            className="system-progress-track"
+          >
+            <span
+              style={{
+                width:
+                  `${activeJob.progress}%`,
+              }}
+            />
+          </div>
+
+        </section>
+
+      ) : (
+
+        <section className="panel system-idle-panel">
+
+          <div className="system-idle-icon">
+            ✓
+          </div>
+
+          <div>
+
+            <h3>
+              Analysis worker ready
+            </h3>
+
+            <p>
+              No road video is currently
+              being processed.
+            </p>
+
+          </div>
+
+        </section>
+
+      )}
+
+
+      <section className="panel system-activity-panel">
 
         <div className="panel-heading">
 
           <div>
+
             <h3>
-              Recognition Pipeline
+              Recent Activity
             </h3>
 
             <p>
-              From uploaded video to evidence-aware result
+              Latest AutoVue analysis jobs
             </p>
+
           </div>
 
+
           <span className="reference-badge">
-            End-to-End
+            {jobs.length}
+            {" jobs"}
           </span>
 
         </div>
 
 
-        <div className="system-pipeline">
+        {jobs.length === 0 ? (
 
-          <article>
-            <span>01</span>
-            <strong>Video Input</strong>
-            <p>
-              MP4 road footage uploaded through
-              the AutoVue workspace.
-            </p>
-          </article>
+          <div className="dashboard-empty-inline">
+            No analysis jobs yet.
+          </div>
 
-          <div className="system-arrow">→</div>
+        ) : (
 
-          <article>
-            <span>02</span>
-            <strong>Vehicle Detection</strong>
-            <p>
-              YOLO11n locates supported road
-              vehicle classes.
-            </p>
-          </article>
+          <div className="table-wrapper">
 
-          <div className="system-arrow">→</div>
+            <table>
 
-          <article>
-            <span>03</span>
-            <strong>Tracking</strong>
-            <p>
-              BoT-SORT assigns temporary track IDs
-              across video frames.
-            </p>
-          </article>
+              <thead>
 
-          <div className="system-arrow">→</div>
+                <tr>
+                  <th>Video</th>
+                  <th>Status</th>
+                  <th>Progress</th>
+                  <th>Job ID</th>
+                </tr>
 
-          <article>
-            <span>04</span>
-            <strong>Plate Localization</strong>
-            <p>
-              Fine-tuned YOLO11n searches inside
-              each vehicle region.
-            </p>
-          </article>
+              </thead>
 
-          <div className="system-arrow">→</div>
 
-          <article>
-            <span>05</span>
-            <strong>OCR</strong>
-            <p>
-              PaddleOCR with Indian registration
-              parsing and rescue strategies.
-            </p>
-          </article>
+              <tbody>
 
-          <div className="system-arrow">→</div>
+                {jobs
+                  .slice(
+                    0,
+                    8
+                  )
+                  .map(
+                    (job) => (
 
-          <article>
-            <span>06</span>
-            <strong>Temporal Consensus</strong>
-            <p>
-              Multi-frame candidates and fragments
-              are consolidated conservatively.
-            </p>
-          </article>
+                      <tr
+                        key={
+                          job.job_id
+                        }
+                      >
 
-          <div className="system-arrow">→</div>
+                        <td>
+                          <strong>
+                            {
+                              job
+                                .original_filename
+                            }
+                          </strong>
+                        </td>
 
-          <article>
-            <span>07</span>
-            <strong>Evidence Result</strong>
-            <p>
-              Canonical result, video rendering and
-              evidence state are exposed through API.
-            </p>
-          </article>
+                        <td>
+                          <span className="job-status">
+                            {
+                              humanStatus(
+                                job.status
+                              )
+                            }
+                          </span>
+                        </td>
 
-        </div>
+                        <td>
+                          {
+                            job.progress
+                          }%
+                        </td>
+
+                        <td className="job-id">
+                          {
+                            job.job_id
+                              .slice(
+                                0,
+                                12
+                              )
+                          }…
+                        </td>
+
+                      </tr>
+
+                    )
+                  )}
+
+              </tbody>
+
+            </table>
+
+          </div>
+
+        )}
 
       </section>
-
-
-      <section className="system-two-column">
-
-        <article className="panel">
-
-          <div className="panel-heading">
-            <div>
-              <h3>
-                Core Model Configuration
-              </h3>
-              <p>
-                Frozen research configuration
-              </p>
-            </div>
-          </div>
-
-
-          <div className="config-list">
-
-            <div>
-              <span>Vehicle detector</span>
-              <strong>
-                YOLO11n · COCO
-              </strong>
-            </div>
-
-            <div>
-              <span>Vehicle classes</span>
-              <strong>
-                bicycle · car · motorcycle · bus · truck
-              </strong>
-            </div>
-
-            <div>
-              <span>Vehicle confidence</span>
-              <strong>
-                0.30
-              </strong>
-            </div>
-
-            <div>
-              <span>Tracker</span>
-              <strong>
-                BoT-SORT
-              </strong>
-            </div>
-
-            <div>
-              <span>Plate detector</span>
-              <strong>
-                Fine-tuned YOLO11n
-              </strong>
-            </div>
-
-            <div>
-              <span>Plate confidence</span>
-              <strong>
-                0.40
-              </strong>
-            </div>
-
-            <div>
-              <span>Plate IoU</span>
-              <strong>
-                0.70
-              </strong>
-            </div>
-
-            <div>
-              <span>Plate input size</span>
-              <strong>
-                640 × 640
-              </strong>
-            </div>
-
-            <div>
-              <span>OCR engine</span>
-              <strong>
-                PaddleOCR
-              </strong>
-            </div>
-
-            <div>
-              <span>Output strategy</span>
-              <strong>
-                Multi-frame temporal consensus
-              </strong>
-            </div>
-
-          </div>
-
-        </article>
-
-
-        <article className="panel">
-
-          <div className="panel-heading">
-            <div>
-              <h3>
-                Application Architecture
-              </h3>
-              <p>
-                Current local product layer
-              </p>
-            </div>
-          </div>
-
-
-          <div className="architecture-stack">
-
-            <article>
-              <div className="architecture-icon">
-                UI
-              </div>
-
-              <div>
-                <strong>
-                  React + TypeScript
-                </strong>
-                <p>
-                  Dashboard, upload workspace,
-                  results and evidence inspection.
-                </p>
-              </div>
-            </article>
-
-            <article>
-              <div className="architecture-icon">
-                API
-              </div>
-
-              <div>
-                <strong>
-                  FastAPI
-                </strong>
-                <p>
-                  Job lifecycle, result APIs,
-                  media streaming and crop access.
-                </p>
-              </div>
-            </article>
-
-            <article>
-              <div className="architecture-icon">
-                GPU
-              </div>
-
-              <div>
-                <strong>
-                  Serialized Analysis Worker
-                </strong>
-                <p>
-                  Runs tracking, reassociation,
-                  PaddleOCR, consensus and rendering.
-                </p>
-              </div>
-            </article>
-
-            <article>
-              <div className="architecture-icon">
-                ML
-              </div>
-
-              <div>
-                <strong>
-                  AutoVue Research Pipeline
-                </strong>
-                <p>
-                  Frozen detector, OCR and temporal
-                  logic wrapped by regression-safe adapters.
-                </p>
-              </div>
-            </article>
-
-            <article>
-              <div className="architecture-icon">
-                FS
-              </div>
-
-              <div>
-                <strong>
-                  Local Job Workspace
-                </strong>
-                <p>
-                  Input video, crops, metadata,
-                  canonical result and rendered media.
-                </p>
-              </div>
-            </article>
-
-          </div>
-
-        </article>
-
-      </section>
-
-
-      <section className="panel runtime-panel">
-
-        <div className="panel-heading">
-
-          <div>
-            <h3>
-              Runtime Environment
-            </h3>
-
-            <p>
-              Current development workstation
-            </p>
-          </div>
-
-        </div>
-
-
-        <div className="runtime-grid">
-
-          <div>
-            <span>Operating environment</span>
-            <strong>
-              Ubuntu 24.04 · WSL2
-            </strong>
-          </div>
-
-          <div>
-            <span>Compute</span>
-            <strong>
-              NVIDIA RTX 4050 Laptop GPU · 6 GB
-            </strong>
-          </div>
-
-          <div>
-            <span>Primary ML runtime</span>
-            <strong>
-              Python · PyTorch · Ultralytics
-            </strong>
-          </div>
-
-          <div>
-            <span>OCR runtime</span>
-            <strong>
-              Separate PaddlePaddle GPU environment
-            </strong>
-          </div>
-
-          <div>
-            <span>Backend</span>
-            <strong>
-              FastAPI + Uvicorn
-            </strong>
-          </div>
-
-          <div>
-            <span>Frontend</span>
-            <strong>
-              React + Vite + TypeScript
-            </strong>
-          </div>
-
-        </div>
-
-      </section>
-
-
-      <section className="system-two-column">
-
-        <article className="panel">
-
-          <div className="panel-heading">
-            <div>
-              <h3>
-                Product Status
-              </h3>
-              <p>
-                Implemented locally
-              </p>
-            </div>
-          </div>
-
-
-          <div className="status-checklist">
-
-            <div className="status-complete">
-              <span>✓</span>
-              Video upload and job creation
-            </div>
-
-            <div className="status-complete">
-              <span>✓</span>
-              GPU analysis worker
-            </div>
-
-            <div className="status-complete">
-              <span>✓</span>
-              Full ANPR inference pipeline
-            </div>
-
-            <div className="status-complete">
-              <span>✓</span>
-              Canonical result generation
-            </div>
-
-            <div className="status-complete">
-              <span>✓</span>
-              Browser-compatible analyzed media
-            </div>
-
-            <div className="status-complete">
-              <span>✓</span>
-              Recognition and evidence UI
-            </div>
-
-          </div>
-
-        </article>
-
-
-        <article className="panel">
-
-          <div className="panel-heading">
-            <div>
-              <h3>
-                Remaining Productization
-              </h3>
-              <p>
-                Planned after the local dashboard
-              </p>
-            </div>
-          </div>
-
-
-          <div className="status-checklist">
-
-            <div className="status-pending">
-              <span>○</span>
-              PostgreSQL persistence
-            </div>
-
-            <div className="status-pending">
-              <span>○</span>
-              Human road-video ground truth
-            </div>
-
-            <div className="status-pending">
-              <span>○</span>
-              Final end-to-end metrics
-            </div>
-
-            <div className="status-pending">
-              <span>○</span>
-              Production job queue / recovery
-            </div>
-
-            <div className="status-pending">
-              <span>○</span>
-              AWS deployment
-            </div>
-
-            <div className="status-pending">
-              <span>○</span>
-              Final documentation and demo package
-            </div>
-
-          </div>
-
-        </article>
-
-      </section>
-
-
-      <section className="panel cloud-panel">
-
-        <div className="panel-heading">
-          <div>
-            <h3>
-              Planned Cloud Architecture
-            </h3>
-            <p>
-              Deployment direction — not yet claimed as implemented
-            </p>
-          </div>
-        </div>
-
-
-        <div className="cloud-flow">
-
-          <div>
-            <strong>
-              React UI
-            </strong>
-            <span>
-              Browser
-            </span>
-          </div>
-
-          <b>→</b>
-
-          <div>
-            <strong>
-              FastAPI
-            </strong>
-            <span>
-              EC2
-            </span>
-          </div>
-
-          <b>→</b>
-
-          <div>
-            <strong>
-              GPU Worker
-            </strong>
-            <span>
-              EC2 GPU
-            </span>
-          </div>
-
-          <b>→</b>
-
-          <div>
-            <strong>
-              Media
-            </strong>
-            <span>
-              Amazon S3
-            </span>
-          </div>
-
-          <b>→</b>
-
-          <div>
-            <strong>
-              Metadata
-            </strong>
-            <span>
-              PostgreSQL / RDS
-            </span>
-          </div>
-
-        </div>
-
-      </section>
-
-
-      <footer className="research-footer">
-        AutoVue · Indian ANPR Intelligence ·
-        Current dashboard represents the local research/product prototype.
-      </footer>
 
     </div>
   );

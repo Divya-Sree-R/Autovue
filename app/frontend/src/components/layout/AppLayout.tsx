@@ -33,7 +33,7 @@ const navigation = [
   },
   {
     to: "/evaluation",
-    label: "Evaluation",
+    label: "Analytics",
   },
 ];
 

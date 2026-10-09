@@ -1,457 +1,1095 @@
-function EvaluationPage() {
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+import {
+  getJobResults,
+  getJobs,
+} from "../services/api";
+
+import type {
+  AnalysisJob,
+} from "../services/api";
+
+import type {
+  AutoVueResult,
+  ClusterResult,
+  EvidenceStatus,
+} from "../types/autovue";
+
+
+function percentage(
+  value: number,
+  total: number
+) {
+  if (total <= 0) {
+    return 0;
+  }
+
   return (
-    <div className="research-page">
+    value / total
+  ) * 100;
+}
 
-      <header className="route-header research-header">
 
-        <span className="route-eyebrow">
-          Research Validation
-        </span>
+function formatPercent(
+  value: number
+) {
+  return `${value.toFixed(1)}%`;
+}
 
-        <h2>
-          Evaluation
-        </h2>
 
-        <p>
-          Experimental results from detector benchmarking,
-          OCR validation, road-domain testing and the frozen
-          AutoVue multi-frame evaluation.
-        </p>
+function statusLabel(
+  status: EvidenceStatus
+) {
+  return status
+    .replaceAll("_", " ")
+    .toLowerCase()
+    .replace(
+      /\b\w/g,
+      (letter) =>
+        letter.toUpperCase()
+    );
+}
+
+
+function statusClass(
+  status: EvidenceStatus
+) {
+  return (
+    "status " +
+    status
+      .toLowerCase()
+      .replaceAll("_", "-")
+  );
+}
+
+
+function candidatePriority(
+  cluster: ClusterResult
+) {
+  const statusOrder:
+    Record<EvidenceStatus, number> = {
+      VERIFIED_FULL: 0,
+      CORROBORATED_FRAGMENT: 1,
+      NEEDS_REVIEW: 2,
+      REJECTED: 3,
+    };
+
+  return statusOrder[
+    cluster.status
+  ];
+}
+
+
+function EvaluationPage() {
+  const [jobs, setJobs] =
+    useState<AnalysisJob[]>([]);
+
+  const [
+    selectedJobId,
+    setSelectedJobId,
+  ] = useState<string | null>(
+    null
+  );
+
+  const [
+    loadedJobId,
+    setLoadedJobId,
+  ] = useState<string | null>(
+    null
+  );
+
+  const [data, setData] =
+    useState<AutoVueResult | null>(
+      null
+    );
+
+  const [error, setError] =
+    useState<string | null>(
+      null
+    );
+
+
+  useEffect(() => {
+    let cancelled = false;
+
+    getJobs()
+      .then((items) => {
+        if (cancelled) {
+          return;
+        }
+
+        const completed =
+          items.filter(
+            (job) =>
+              job.status
+              === "COMPLETED"
+          );
+
+        setJobs(
+          completed
+        );
+
+        if (
+          completed.length > 0
+        ) {
+          setSelectedJobId(
+            completed[0].job_id
+          );
+        }
+      })
+      .catch((err) => {
+        if (cancelled) {
+          return;
+        }
+
+        setError(
+          err instanceof Error
+            ? err.message
+            : (
+                "Could not load "
+                + "analysis jobs."
+              )
+        );
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+
+  useEffect(() => {
+    if (!selectedJobId) {
+      return;
+    }
+
+    let cancelled = false;
+
+    getJobResults(
+      selectedJobId
+    )
+      .then((result) => {
+        if (cancelled) {
+          return;
+        }
+
+        setData(result);
+        setLoadedJobId(
+          selectedJobId
+        );
+        setError(null);
+      })
+      .catch((err) => {
+        if (cancelled) {
+          return;
+        }
+
+        setError(
+          err instanceof Error
+            ? err.message
+            : (
+                "Could not load "
+                + "analysis results."
+              )
+        );
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedJobId]);
+
+
+  const selectedJob =
+    useMemo(
+      () =>
+        jobs.find(
+          (job) =>
+            job.job_id
+            === selectedJobId
+        ) ?? null,
+      [
+        jobs,
+        selectedJobId,
+      ]
+    );
+
+
+  const candidates =
+    useMemo(() => {
+      if (!data) {
+        return [];
+      }
+
+      return data.clusters
+        .filter(
+          (cluster) =>
+            cluster.final_candidate
+            !== null
+        )
+        .sort(
+          (a, b) => {
+            const priority =
+              candidatePriority(a)
+              - candidatePriority(b);
+
+            if (priority !== 0) {
+              return priority;
+            }
+
+            return (
+              (b.mean_confidence ?? 0)
+              -
+              (a.mean_confidence ?? 0)
+            );
+          }
+        );
+    }, [data]);
+
+
+  const summary =
+    data?.summary ?? null;
+
+
+  const candidateCount =
+    summary
+      ?.clusters_with_complete_candidate
+    ?? 0;
+
+
+  const clusterCount =
+    summary
+      ?.conservative_clusters
+    ?? 0;
+
+
+  const strongEvidence =
+    (
+      summary?.verified_full
+      ?? 0
+    )
+    +
+    (
+      summary
+        ?.corroborated_fragment
+      ?? 0
+    );
+
+
+  const reviewCount =
+    summary?.needs_review
+    ?? 0;
+
+
+  const rejectedCount =
+    summary?.rejected
+    ?? 0;
+
+
+  const meanConfidence =
+    candidates.length > 0
+      ? (
+          candidates.reduce(
+            (
+              total,
+              cluster
+            ) =>
+              total
+              +
+              (
+                cluster
+                  .mean_confidence
+                ?? 0
+              ),
+            0
+          )
+          /
+          candidates.length
+        )
+        * 100
+      : 0;
+
+
+  const totalObservations =
+    data
+      ? data.clusters.reduce(
+          (
+            total,
+            cluster
+          ) =>
+            total
+            +
+            cluster
+              .observations
+              .length,
+          0
+        )
+      : 0;
+
+
+  const breakdown = [
+    {
+      label:
+        "Verified Full",
+      count:
+        summary?.verified_full
+        ?? 0,
+      className:
+        "analytics-bar-verified",
+    },
+    {
+      label:
+        "Corroborated",
+      count:
+        summary
+          ?.corroborated_fragment
+        ?? 0,
+      className:
+        "analytics-bar-corroborated",
+    },
+    {
+      label:
+        "Needs Review",
+      count:
+        reviewCount,
+      className:
+        "analytics-bar-review",
+    },
+    {
+      label:
+        "Rejected",
+      count:
+        rejectedCount,
+      className:
+        "analytics-bar-rejected",
+    },
+  ];
+
+
+  function changeJob(
+    jobId: string
+  ) {
+    setSelectedJobId(
+      jobId
+    );
+
+    setLoadedJobId(
+      null
+    );
+
+    setData(
+      null
+    );
+
+    setError(
+      null
+    );
+  }
+
+
+  if (
+    jobs.length === 0
+    && !error
+  ) {
+    return (
+      <div className="analytics-page">
+
+        <header className="route-header">
+
+          <span className="route-eyebrow">
+            AutoVue Intelligence
+          </span>
+
+          <h2>
+            Analytics
+          </h2>
+
+          <p>
+            Operational insights from
+            completed road-video analyses.
+          </p>
+
+        </header>
+
+
+        <section className="panel dashboard-empty-state">
+
+          <div className="empty-state-icon">
+            ◉
+          </div>
+
+          <h3>
+            No completed analyses yet
+          </h3>
+
+          <p>
+            Run a road video from the
+            Analyze page. Its recognition
+            analytics will appear here.
+          </p>
+
+        </section>
+
+      </div>
+    );
+  }
+
+
+  return (
+    <div className="analytics-page">
+
+      <header className="route-header analytics-header">
+
+        <div>
+
+          <span className="route-eyebrow">
+            Recognition Intelligence
+          </span>
+
+          <h2>
+            Analytics
+          </h2>
+
+          <p>
+            Understand recognition coverage,
+            evidence strength and review
+            requirements for an AutoVue run.
+          </p>
+
+        </div>
+
+
+        <label className="dashboard-selector">
+
+          <span>
+            Analysis
+          </span>
+
+          <select
+            value={
+              selectedJobId
+              ?? ""
+            }
+            onChange={
+              (event) =>
+                changeJob(
+                  event.target.value
+                )
+            }
+          >
+            {jobs.map(
+              (job) => (
+                <option
+                  key={
+                    job.job_id
+                  }
+                  value={
+                    job.job_id
+                  }
+                >
+                  {
+                    job
+                      .original_filename
+                  }
+                  {" · "}
+                  {
+                    job.job_id.slice(
+                      0,
+                      8
+                    )
+                  }
+                </option>
+              )
+            )}
+          </select>
+
+        </label>
 
       </header>
 
 
-      <section className="evaluation-highlight-grid">
-
-        <article className="evaluation-highlight">
-          <span>Selected Detector</span>
-          <strong>YOLO11n</strong>
-          <small>
-            Best balance among the tested models
-          </small>
-        </article>
-
-        <article className="evaluation-highlight">
-          <span>Detector mAP50</span>
-          <strong>96.66%</strong>
-          <small>
-            Leakage-safe held-out plate test split
-          </small>
-        </article>
-
-        <article className="evaluation-highlight">
-          <span>Static OCR Exact Match</span>
-          <strong>64.29%</strong>
-          <small>
-            9 / 14 readable held-out plate crops
-          </small>
-        </article>
-
-        <article className="evaluation-highlight">
-          <span>Final Road Clusters</span>
-          <strong>43</strong>
-          <small>
-            Conservative temporal clusters
-          </small>
-        </article>
-
-      </section>
+      {error && (
+        <div className="analysis-alert analysis-alert-error">
+          {error}
+        </div>
+      )}
 
 
-      <section className="research-grid">
+      {(
+        !data
+        ||
+        loadedJobId
+        !== selectedJobId
+      ) ? (
 
-        <article className="panel research-card">
+        <section className="panel dashboard-loading">
+          Loading AutoVue analytics…
+        </section>
 
-          <div className="panel-heading">
-            <div>
-              <h3>
-                Plate Detector Benchmark
-              </h3>
-              <p>
-                Same leakage-safe held-out test split
-              </p>
-            </div>
-          </div>
+      ) : (
+
+        <>
+
+          <section className="analytics-kpi-grid">
+
+            <article className="analytics-kpi">
+
+              <span>
+                Track clusters
+              </span>
+
+              <strong>
+                {clusterCount}
+              </strong>
+
+              <small>
+                Conservative vehicle
+                clusters
+              </small>
+
+            </article>
 
 
-          <div className="benchmark-table-wrap">
+            <article className="analytics-kpi analytics-kpi-blue">
 
-            <table className="benchmark-table">
+              <span>
+                Plate candidates
+              </span>
 
-              <thead>
-                <tr>
-                  <th>Model</th>
-                  <th>Precision</th>
-                  <th>Recall</th>
-                  <th>F1</th>
-                  <th>mAP50</th>
-                  <th>mAP50–95</th>
-                  <th>Inference</th>
-                </tr>
-              </thead>
+              <strong>
+                {candidateCount}
+              </strong>
 
-              <tbody>
+              <small>
+                Complete registration
+                candidates
+              </small>
 
-                <tr>
-                  <td>
-                    YOLOv8n
-                  </td>
-                  <td>94.24%</td>
-                  <td>95.90%</td>
-                  <td>95.06%</td>
-                  <td>96.25%</td>
-                  <td>67.07%</td>
-                  <td>2.99 ms</td>
-                </tr>
+            </article>
 
-                <tr className="benchmark-selected">
-                  <td>
+
+            <article className="analytics-kpi analytics-kpi-green">
+
+              <span>
+                Strong evidence
+              </span>
+
+              <strong>
+                {strongEvidence}
+              </strong>
+
+              <small>
+                Verified +
+                corroborated
+              </small>
+
+            </article>
+
+
+            <article className="analytics-kpi analytics-kpi-amber">
+
+              <span>
+                Needs review
+              </span>
+
+              <strong>
+                {reviewCount}
+              </strong>
+
+              <small>
+                Candidate clusters
+                requiring inspection
+              </small>
+
+            </article>
+
+          </section>
+
+
+          <section className="analytics-main-grid">
+
+            <article className="panel analytics-overview-panel">
+
+              <div className="panel-heading">
+
+                <div>
+                  <h3>
+                    Recognition Coverage
+                  </h3>
+
+                  <p>
+                    How temporal evidence
+                    resolved tracked clusters
+                  </p>
+                </div>
+
+
+                <span className="reference-badge">
+                  {
+                    selectedJob
+                      ?.original_filename
+                    ?? "Completed run"
+                  }
+                </span>
+
+              </div>
+
+
+              <div className="analytics-score-grid">
+
+                <div className="analytics-score">
+
+                  <span>
+                    Candidate coverage
+                  </span>
+
+                  <strong>
+                    {
+                      formatPercent(
+                        percentage(
+                          candidateCount,
+                          clusterCount
+                        )
+                      )
+                    }
+                  </strong>
+
+                  <small>
+                    complete candidates /
+                    clusters
+                  </small>
+
+                </div>
+
+
+                <div className="analytics-score">
+
+                  <span>
+                    Strong-evidence share
+                  </span>
+
+                  <strong>
+                    {
+                      formatPercent(
+                        percentage(
+                          strongEvidence,
+                          candidateCount
+                        )
+                      )
+                    }
+                  </strong>
+
+                  <small>
+                    among complete
+                    candidates
+                  </small>
+
+                </div>
+
+
+                <div className="analytics-score">
+
+                  <span>
+                    Review share
+                  </span>
+
+                  <strong>
+                    {
+                      formatPercent(
+                        percentage(
+                          reviewCount,
+                          candidateCount
+                        )
+                      )
+                    }
+                  </strong>
+
+                  <small>
+                    candidates requiring
+                    manual review
+                  </small>
+
+                </div>
+
+
+                <div className="analytics-score">
+
+                  <span>
+                    Mean candidate confidence
+                  </span>
+
+                  <strong>
+                    {
+                      formatPercent(
+                        meanConfidence
+                      )
+                    }
+                  </strong>
+
+                  <small>
+                    recognized candidates
+                  </small>
+
+                </div>
+
+              </div>
+
+
+              <div className="analytics-breakdown">
+
+                <div className="analytics-section-title">
+
+                  <div>
                     <strong>
-                      YOLO11n
+                      Evidence distribution
                     </strong>
-                    <span className="benchmark-choice">
-                      Selected
+
+                    <span>
+                      {clusterCount}
+                      {" "}
+                      total clusters
                     </span>
-                  </td>
-                  <td>95.44%</td>
-                  <td>96.21%</td>
-                  <td>95.82%</td>
-                  <td>96.66%</td>
-                  <td>69.98%</td>
-                  <td>3.67 ms</td>
-                </tr>
+                  </div>
 
-                <tr>
-                  <td>
-                    YOLO11s
-                  </td>
-                  <td>95.27%</td>
-                  <td>96.25%</td>
-                  <td>95.76%</td>
-                  <td>96.37%</td>
-                  <td>70.63%</td>
-                  <td>7.38 ms</td>
-                </tr>
-
-              </tbody>
-
-            </table>
-
-          </div>
+                </div>
 
 
-          <div className="research-note">
-            YOLO11n is the selected AutoVue detector because
-            it offered the preferred accuracy–latency–model-size
-            trade-off among the tested models. This does not
-            claim that YOLO11n is universally the best detector.
-          </div>
+                <div className="analytics-stacked-bar">
 
-        </article>
+                  {breakdown.map(
+                    (item) => (
+                      <span
+                        key={
+                          item.label
+                        }
+                        className={
+                          item
+                            .className
+                        }
+                        style={{
+                          width:
+                            `${percentage(
+                              item.count,
+                              clusterCount
+                            )}%`,
+                        }}
+                        title={
+                          `${item.label}: `
+                          + item.count
+                        }
+                      />
+                    )
+                  )}
 
-
-        <article className="panel research-card">
-
-          <div className="panel-heading">
-            <div>
-              <h3>
-                Static OCR Evaluation
-              </h3>
-              <p>
-                Held-out manually verified plate crops
-              </p>
-            </div>
-          </div>
-
-
-          <div className="research-stat-grid">
-
-            <div>
-              <span>Readable test crops</span>
-              <strong>14</strong>
-            </div>
-
-            <div>
-              <span>Exact matches</span>
-              <strong>9 / 14</strong>
-            </div>
-
-            <div>
-              <span>Exact-match rate</span>
-              <strong>64.29%</strong>
-            </div>
-
-            <div>
-              <span>Character error rate</span>
-              <strong>31.43%</strong>
-            </div>
-
-            <div>
-              <span>Blank predictions</span>
-              <strong>0</strong>
-            </div>
-
-            <div>
-              <span>Rotation rescues</span>
-              <strong>3</strong>
-            </div>
-
-          </div>
+                </div>
 
 
-          <div className="research-warning">
-            <strong>
-              Important interpretation
-            </strong>
+                <div className="analytics-legend">
 
-            <p>
-              64.29% is OCR exact-match accuracy on 14 readable
-              held-out ground-truth plate crops. It is not
-              end-to-end road-video ANPR accuracy.
-            </p>
-          </div>
+                  {breakdown.map(
+                    (item) => (
+                      <div
+                        key={
+                          item.label
+                        }
+                      >
 
-        </article>
+                        <span
+                          className={
+                            `analytics-legend-dot `
+                            + item
+                              .className
+                          }
+                        />
 
+                        <span>
+                          {item.label}
+                        </span>
 
-        <article className="panel research-card">
+                        <strong>
+                          {item.count}
+                        </strong>
 
-          <div className="panel-heading">
-            <div>
-              <h3>
-                Road-Domain Detector Check
-              </h3>
-              <p>
-                Unseen road-video domain shift
-              </p>
-            </div>
-          </div>
+                      </div>
+                    )
+                  )}
 
+                </div>
 
-          <div className="research-stat-grid compact">
+              </div>
 
-            <div>
-              <span>Visible plates</span>
-              <strong>57</strong>
-            </div>
-
-            <div>
-              <span>True positives</span>
-              <strong>19</strong>
-            </div>
-
-            <div>
-              <span>False positives</span>
-              <strong>8</strong>
-            </div>
-
-            <div>
-              <span>False negatives</span>
-              <strong>38</strong>
-            </div>
-
-            <div>
-              <span>Precision</span>
-              <strong>70.37%</strong>
-            </div>
-
-            <div>
-              <span>Recall</span>
-              <strong>33.33%</strong>
-            </div>
-
-            <div>
-              <span>F1</span>
-              <strong>45.24%</strong>
-            </div>
-
-          </div>
+            </article>
 
 
-          <div className="research-note">
-            The major road-domain weakness was recall.
-            The later adaptation experiment was not retained,
-            so the frozen detector remains the benchmarked
-            leakage-safe model.
-          </div>
+            <aside className="panel analytics-signal-panel">
 
-        </article>
+              <div className="panel-heading">
 
+                <div>
+                  <h3>
+                    Run Signals
+                  </h3>
 
-        <article className="panel research-card">
+                  <p>
+                    Useful operational
+                    indicators
+                  </p>
+                </div>
 
-          <div className="panel-heading">
-            <div>
-              <h3>
-                Frozen Multi-Frame Road Evaluation
-              </h3>
-              <p>
-                M25 product reference sequence
-              </p>
-            </div>
-          </div>
+              </div>
 
 
-          <div className="evaluation-flow">
+              <div className="signal-list">
 
-            <div>
-              <strong>45</strong>
-              <span>Raw tracker IDs</span>
-            </div>
+                <div className="signal-item">
 
-            <span>→</span>
+                  <span>
+                    OCR observations
+                  </span>
 
-            <div>
-              <strong>92</strong>
-              <span>Selected crops</span>
-            </div>
+                  <strong>
+                    {totalObservations}
+                  </strong>
 
-            <span>→</span>
+                </div>
 
-            <div>
-              <strong>43</strong>
-              <span>Clusters</span>
-            </div>
 
-            <span>→</span>
+                <div className="signal-item">
 
-            <div>
-              <strong>8</strong>
-              <span>Complete candidates</span>
+                  <span>
+                    Selected crops
+                  </span>
+
+                  <strong>
+                    {
+                      summary
+                        ?.selected_ocr_crops
+                      ?? 0
+                    }
+                  </strong>
+
+                </div>
+
+
+                <div className="signal-item">
+
+                  <span>
+                    Parser-valid crops
+                  </span>
+
+                  <strong>
+                    {
+                      summary
+                        ?.parser_valid_crop_predictions
+                      ?? 0
+                    }
+                  </strong>
+
+                </div>
+
+
+                <div className="signal-item">
+
+                  <span>
+                    Unique selected strings
+                  </span>
+
+                  <strong>
+                    {
+                      summary
+                        ?.unique_selected_candidate_strings
+                      ?? 0
+                    }
+                  </strong>
+
+                </div>
+
+              </div>
+
+
+              <div className="analytics-note">
+
+                <strong>
+                  Evidence-aware output
+                </strong>
+
+                <p>
+                  Verified, corroborated and
+                  review states describe the
+                  strength of temporal
+                  recognition evidence. They
+                  are not ground-truth
+                  correctness labels.
+                </p>
+
+              </div>
+
+            </aside>
+
+          </section>
+
+
+          <section className="panel analytics-candidates-panel">
+
+            <div className="panel-heading">
+
+              <div>
+
+                <h3>
+                  Recognized Candidates
+                </h3>
+
+                <p>
+                  Highest-value recognition
+                  results from this analysis
+                </p>
+
+              </div>
+
+
+              <span className="reference-badge">
+                {candidates.length}
+                {" candidates"}
+              </span>
+
             </div>
 
-            <span>→</span>
 
-            <div>
-              <strong>6</strong>
-              <span>Unique strings</span>
-            </div>
+            {candidates.length === 0 ? (
 
-          </div>
+              <div className="dashboard-empty-inline">
+                No complete plate candidates
+                were produced.
+              </div>
 
+            ) : (
 
-          <div className="status-evaluation-grid">
+              <div className="table-wrapper">
 
-            <div className="evaluation-status verified">
-              <strong>2</strong>
-              <span>Verified Full</span>
-            </div>
+                <table className="analytics-table">
 
-            <div className="evaluation-status corroborated">
-              <strong>2</strong>
-              <span>Corroborated Fragment</span>
-            </div>
+                  <thead>
 
-            <div className="evaluation-status review">
-              <strong>4</strong>
-              <span>Needs Review</span>
-            </div>
+                    <tr>
+                      <th>Plate</th>
+                      <th>Cluster</th>
+                      <th>Tracks</th>
+                      <th>Full Support</th>
+                      <th>Fragment</th>
+                      <th>Confidence</th>
+                      <th>Status</th>
+                    </tr>
 
-            <div className="evaluation-status rejected">
-              <strong>35</strong>
-              <span>Rejected</span>
-            </div>
-
-          </div>
+                  </thead>
 
 
-          <div className="research-warning">
-            <strong>
-              Evidence status ≠ correctness
-            </strong>
+                  <tbody>
 
-            <p>
-              VERIFIED_FULL and the other labels express
-              temporal evidence strength. They are not
-              ground-truth accuracy labels.
-            </p>
-          </div>
+                    {candidates.map(
+                      (cluster) => (
 
-        </article>
+                        <tr
+                          key={
+                            cluster
+                              .cluster_id
+                          }
+                        >
 
-      </section>
+                          <td className="plate-value">
+                            {
+                              cluster
+                                .final_candidate
+                            }
+                          </td>
 
+                          <td>
+                            #
+                            {
+                              cluster
+                                .cluster_id
+                            }
+                          </td>
 
-      <section className="panel protocol-panel">
+                          <td>
+                            {
+                              cluster
+                                .member_tracks
+                                .join(", ")
+                            }
+                          </td>
 
-        <div className="panel-heading">
-          <div>
-            <h3>
-              Evaluation Protocol
-            </h3>
-            <p>
-              Measures taken to avoid overstating results
-            </p>
-          </div>
-        </div>
+                          <td>
+                            {
+                              cluster
+                                .full_frame_support
+                            }
+                          </td>
 
+                          <td>
+                            {
+                              cluster
+                                .fragment_support_frames
+                            }
+                          </td>
 
-        <div className="protocol-grid">
+                          <td>
+                            {
+                              cluster
+                                .mean_confidence
+                              !== null
+                                ? `${(
+                                    cluster
+                                      .mean_confidence
+                                    * 100
+                                  ).toFixed(
+                                    1
+                                  )}%`
+                                : "—"
+                            }
+                          </td>
 
-          <article>
-            <span>01</span>
-            <div>
-              <strong>
-                Leakage-safe detector split
-              </strong>
-              <p>
-                Source identities were separated before
-                training, validation and testing to remove
-                duplicate-source leakage.
-              </p>
-            </div>
-          </article>
+                          <td>
 
-          <article>
-            <span>02</span>
-            <div>
-              <strong>
-                Frozen road evaluation
-              </strong>
-              <p>
-                M25 uses the selected models and fixed
-                recognition rules rather than tuning the
-                system against the final road sequence.
-              </p>
-            </div>
-          </article>
+                            <span
+                              className={
+                                statusClass(
+                                  cluster
+                                    .status
+                                )
+                              }
+                            >
+                              {
+                                statusLabel(
+                                  cluster
+                                    .status
+                                )
+                              }
+                            </span>
 
-          <article>
-            <span>03</span>
-            <div>
-              <strong>
-                Conservative evidence states
-              </strong>
-              <p>
-                Weak single-frame predictions are separated
-                from repeatedly supported or fragment-
-                corroborated candidates.
-              </p>
-            </div>
-          </article>
+                          </td>
 
-          <article>
-            <span>04</span>
-            <div>
-              <strong>
-                End-to-end accuracy pending
-              </strong>
-              <p>
-                Human road-video ground truth is still required
-                before reporting final end-to-end ANPR accuracy.
-              </p>
-            </div>
-          </article>
+                        </tr>
 
-        </div>
+                      )
+                    )}
 
-      </section>
+                  </tbody>
 
+                </table>
 
-      <footer className="research-footer">
-        AutoVue research prototype · Reported metrics retain
-        their original evaluation scope.
-      </footer>
+              </div>
+
+            )}
+
+          </section>
+
+        </>
+
+      )}
 
     </div>
   );
