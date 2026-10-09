@@ -167,6 +167,33 @@ async function apiErrorMessage(
 }
 
 
+export async function deleteJob(
+  jobId: string
+): Promise<{
+  job_id: string;
+  deleted: boolean;
+}> {
+
+  const response = await fetch(
+    `${API_BASE}/api/jobs/${jobId}`,
+    {
+      method: "DELETE",
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      await apiErrorMessage(
+        response,
+        `Could not delete job: ${response.status}`
+      )
+    );
+  }
+
+  return response.json();
+}
+
+
 export async function runJob(
   jobId: string
 ): Promise<AnalysisJob> {

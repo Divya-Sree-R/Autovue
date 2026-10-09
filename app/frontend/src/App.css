@@ -7048,3 +7048,37 @@ tbody tr:hover {
   transition:
     width 300ms ease;
 }
+
+
+/* =========================================================
+   M26I-B — ANALYSIS JOB ACTIONS
+   ========================================================= */
+
+.job-table-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.table-action-danger {
+  color: #c24141;
+
+  background: #fff;
+
+  border-color: #f1caca;
+}
+
+.table-action-danger:hover:not(:disabled) {
+  color: #a82f2f;
+
+  background: #fff4f4;
+
+  border-color: #e7a9a9;
+}
+
+.table-action-danger:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

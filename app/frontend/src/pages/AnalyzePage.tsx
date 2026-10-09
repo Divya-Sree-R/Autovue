@@ -5,6 +5,7 @@ import {
 } from "react";
 
 import {
+  deleteJob,
   getJobResults,
   getJobs,
   jobMediaUrls,
@@ -655,6 +656,93 @@ function AnalyzePage() {
   }
 
 
+  async function handleDelete(
+    job: AnalysisJob
+  ) {
+
+    if (
+      RUNNING_STATUSES.has(
+        job.status
+      )
+    ) {
+      setError(
+        "A job cannot be deleted while AutoVue is processing it."
+      );
+
+      return;
+    }
+
+
+    const confirmed =
+      window.confirm(
+        `Delete "${job.original_filename}"?\n\n`
+        + "This permanently removes the uploaded video, "
+        + "plate crops, metadata, recognition results "
+        + "and generated analysis videos for this job."
+      );
+
+
+    if (!confirmed) {
+      return;
+    }
+
+
+    setError(
+      null
+    );
+
+
+    try {
+
+      await deleteJob(
+        job.job_id
+      );
+
+
+      setJobs(
+        (previous) =>
+          previous.filter(
+            (item) =>
+              item.job_id
+              !== job.job_id
+          )
+      );
+
+
+      if (
+        selectedJob?.job_id
+        === job.job_id
+      ) {
+
+        setSelectedJob(
+          null
+        );
+
+        setResults(
+          null
+        );
+
+        setResultError(
+          null
+        );
+
+        setFile(
+          null
+        );
+      }
+
+    } catch (err) {
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Could not delete analysis job."
+      );
+
+    }
+  }
+
+
   function selectExistingJob(
     job: AnalysisJob
   ) {
@@ -685,18 +773,27 @@ function AnalyzePage() {
     job: AnalysisJob
   ) {
 
+    const running =
+      RUNNING_STATUSES.has(
+        job.status
+      );
+
+
+    const workerBusy =
+      activeJob !== null
+      && activeJob.job_id
+        !== job.job_id;
+
+
+    let primaryAction;
+
+
     if (
       job.status
       === "UPLOADED"
     ) {
 
-      const workerBusy =
-        activeJob !== null
-        && activeJob.job_id
-          !== job.job_id;
-
-
-      return (
+      primaryAction = (
         <button
           type="button"
           className="table-action"
@@ -724,24 +821,58 @@ function AnalyzePage() {
               : "Run"}
         </button>
       );
+
+    } else {
+
+      primaryAction = (
+        <button
+          type="button"
+          className="table-action"
+          onClick={() =>
+            selectExistingJob(
+              job
+            )
+          }
+        >
+          {job.status
+            === "COMPLETED"
+              ? "View"
+              : "Open"}
+        </button>
+      );
     }
 
 
     return (
-      <button
-        type="button"
-        className="table-action"
-        onClick={() =>
-          selectExistingJob(
-            job
-          )
-        }
-      >
-        {job.status
-          === "COMPLETED"
-            ? "View"
-            : "Open"}
-      </button>
+      <div className="job-table-actions">
+
+        {primaryAction}
+
+
+        {!running && (
+
+          <button
+            type="button"
+            className="
+              table-action
+              table-action-danger
+            "
+            title={
+              "Delete this analysis job "
+              + "and all of its stored files"
+            }
+            onClick={() =>
+              void handleDelete(
+                job
+              )
+            }
+          >
+            Delete
+          </button>
+
+        )}
+
+      </div>
     );
   }
 
