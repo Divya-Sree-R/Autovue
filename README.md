@@ -42,34 +42,50 @@
 
 ## Overview
 
-**AutoVue** is a research-oriented Automatic Number Plate Recognition (ANPR) system for **Indian road video**.
+**AutoVue** is a research-oriented and locally runnable **Automatic Number Plate Recognition (ANPR)** system for **Indian road video**.
 
-Instead of trusting a single detector/OCR result, AutoVue treats video as a sequence of repeated observations of the same vehicle and combines evidence across frames.
-
-A typical single-frame pipeline is fragile:
-
-```text
-Camera → Plate Detector → OCR → Result
-```
-
-AutoVue uses a reliability-aware pipeline:
+The project combines a leakage-safe computer-vision study with a working end-to-end application. Instead of trusting a single OCR result, AutoVue combines repeated observations of the same vehicle across frames.
 
 ```text
 Road Video
-→ Vehicle Detection
-→ Vehicle Tracking
+→ YOLO11n Vehicle Detection
+→ BoT-SORT Tracking
 → Vehicle ROI
-→ Plate Detection
-→ Quality-Based Crop Selection
-→ OCR
+→ Fine-tuned YOLO11n Plate Detection
+→ Quality-Based Top-K Plate Crops
+→ PaddleOCR
 → Indian Registration Parsing
-→ Adaptive Rescue
+→ Adaptive Orientation / Preprocessing Rescue
 → Conservative Track Reassociation
-→ Temporal Consensus
-→ Reliability Status
+→ Multi-Frame Temporal Consensus
+→ Evidence Status
+→ Canonical Results + Presentation Video
 ```
 
-The goal is not only to produce a plate string, but also to indicate **how strongly the available video evidence supports that result**.
+### Current Build Status
+
+> **Local Demo Ready**
+
+The completed local build includes FastAPI job APIs, a React + Vite dashboard, MP4 upload and validation, serialized analysis jobs, progress tracking, canonical JSON results, presentation-video generation, results/evidence views, recognition diagnostics, completed-job browsing, and safe deletion.
+
+Recognition evidence is reported as:
+
+- `VERIFIED_FULL`
+- `CORROBORATED_FRAGMENT`
+- `NEEDS_REVIEW`
+- `REJECTED`
+
+When no final plate can be selected, the dashboard distinguishes between **No plate detection**, **Plate detected — OCR unresolved**, **OCR read — format unverified**, and **Temporal evidence insufficient**.
+
+## Demo Video
+
+A complete local demo has been recorded as **`AuoVue.mp4`**.
+
+[▶ AutoVue Demo / GitHub Releases](https://github.com/Divya-Sree-R/Autovue/releases)
+
+The demo shows video upload, analysis progress, original and processed video playback, recognition results, temporal evidence, recognition diagnostics, and switching between completed analyses.
+
+> The demo video is intentionally kept out of normal Git history because of its file size and will be attached as a GitHub Release asset.
 
 ---
 
@@ -122,31 +138,54 @@ It adapts the research problem toward:
 
 ## System Architecture
 
+AutoVue now has two connected layers:
+
+1. a frozen research/recognition pipeline, and
+2. a local application layer built with FastAPI and React.
+
 ```mermaid
 flowchart TD
-    A[Road / CCTV Video] --> B[Pretrained YOLO11n<br/>Vehicle Detection]
-    B --> C[BoT-SORT<br/>Vehicle Tracking]
-    C --> D[Vehicle ROI]
-    D --> E[Fine-tuned YOLO11n<br/>Plate Detection]
-    E --> F[Quality Ranking<br/>Top-K Plate Crops]
-    F --> G[PaddleOCR<br/>PP-OCRv5]
-    G --> H[Indian Registration Parser]
-    H --> I{Parser-valid?}
-    I -->|No| J[Adaptive Orientation Rescue]
-    I -->|Yes| L[Candidate Evidence]
-    J --> K{Resolved?}
-    K -->|No| M[Road-only Preprocessing Fallback]
-    K -->|Yes| L
-    M --> L
-    L --> N[Conservative Track Reassociation]
-    N --> O[Temporal Candidate Voting]
-    O --> P[Fragment Corroboration]
-    P --> Q{Evidence Status}
-    Q --> R[VERIFIED_FULL]
-    Q --> S[CORROBORATED_FRAGMENT]
-    Q --> T[NEEDS_REVIEW]
-    Q --> U[REJECTED]
+    A[React + Vite Dashboard] --> B[FastAPI Job API]
+    B --> C[MP4 Upload Validation]
+    C --> D[Serialized Local Analysis Worker]
+
+    D --> E[YOLO11n Vehicle Detection]
+    E --> F[BoT-SORT Tracking]
+    F --> G[Vehicle ROI]
+    G --> H[Fine-tuned YOLO11n Plate Detection]
+    H --> I[Quality Ranking / Top-K Crops]
+    I --> J[PaddleOCR]
+    J --> K[Indian Registration Parser]
+
+    K --> L{Parser-valid?}
+    L -->|No| M[Adaptive Orientation Rescue]
+    M --> N{Resolved?}
+    N -->|No| O[Road-only Preprocessing Fallback]
+    L -->|Yes| P[Candidate Evidence]
+    N -->|Yes| P
+    O --> P
+
+    P --> Q[Conservative Track Reassociation]
+    Q --> R[Temporal Candidate Voting]
+    R --> S[Fragment Corroboration]
+    S --> T{Evidence Status}
+
+    T --> U[VERIFIED_FULL]
+    T --> V[CORROBORATED_FRAGMENT]
+    T --> W[NEEDS_REVIEW]
+    T --> X[REJECTED]
+
+    U --> Y[Canonical Result JSON]
+    V --> Y
+    W --> Y
+    X --> Y
+
+    D --> Z[Presentation Video]
+    Y --> AA[Results / Evidence UI]
+    Z --> AA
 ```
+
+The recognition layer is evidence-oriented: OCR output alone is not treated as a verified registration. Parser validity, repeated observations, multi-frame support, and fragment evidence are considered before the final evidence state is assigned.
 
 ---
 
@@ -778,7 +817,6 @@ Generic static preprocessing also increased mean latency to approximately
 | Image operations | OpenCV | Learned enhancement | Deterministic and auditable |
 | Temporal fusion | Rule-based consensus | HMM/CRF, LSTM, Transformer | Small labelled road set + interpretability |
 | API | FastAPI *(planned)* | Flask, Django, Node/Express | Python-native inference API |
-| Database | PostgreSQL *(planned)* | SQLite, MySQL, MongoDB | Relational evidence structure |
 | UI | React *(planned)* | Streamlit, Next.js | Polished evidence/review interface |
 
 Untested alternatives are not claimed to be inferior.
@@ -833,7 +871,7 @@ Paddle      : 3.2.1 GPU
 
 The project uses a separate PaddleOCR environment because the Paddle and PyTorch/Ultralytics stacks have different dependency requirements.
 
-> Pinned dependency files are planned as part of M27 finalization. Until then, experiment manifests and `args.yaml` files are the source of truth for reproduced runs.
+> Experiment manifests and `args.yaml` files remain the source of truth for reproducing completed training runs.
 
 ---
 
@@ -850,22 +888,101 @@ Do not use the original leaking split for final research claims.
 
 ---
 
+## Running AutoVue Locally
+
+AutoVue runs locally with a separate FastAPI backend and React + Vite frontend.
+
+### 1. Start the backend
+
+From the project root:
+
+```bash
+cd ~/projects/IndianANPR
+source .venv/bin/activate
+
+export PYTHONPATH=src:.
+
+uvicorn app.backend.main:app \
+  --host 127.0.0.1 \
+  --port 8000
+```
+
+Verify the API:
+
+```bash
+curl http://127.0.0.1:8000/health
+```
+
+Expected response:
+
+```json
+{"status":"ok","service":"AutoVue API","version":"0.1.0"}
+```
+
+### 2. Start the frontend
+
+Open a second terminal:
+
+```bash
+cd ~/projects/IndianANPR/app/frontend
+
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+
+nvm use 22
+
+npm run dev -- \
+  --host 127.0.0.1 \
+  --port 5173
+```
+
+Open:
+
+```text
+http://localhost:5173
+```
+
+### 3. Analysis workflow
+
+```text
+Upload MP4
+→ Validate input
+→ Create job
+→ Start analysis
+→ Vehicle detection + tracking
+→ Plate crop selection
+→ PaddleOCR + Indian parsing
+→ Temporal consensus
+→ Canonical JSON result
+→ Presentation video
+→ Dashboard review
+```
+
+### Note on PaddleOCR
+
+The OCR stage uses the separate AutoVue PaddleOCR environment configured by the project worker. The normal product workflow is started from the main `.venv` environment.
+
+### Important worker note
+
+Do not restart the FastAPI process while an analysis job is running.
+
+The current analysis worker runs inside the FastAPI process, so an API restart can interrupt an active job.
+
+---
+
 ## Research Milestones
 
 | Stage | Outcome |
 |---|---|
 | M01–M13 | Baseline environment, vehicle/plate pipeline, tracking and early OCR |
 | M14 / M14B | Source-level leakage discovered and corrected |
-| M15–M17 | Detector benchmark and YOLO11n freeze |
-| M18 | Human-reviewed road robustness audit |
-| M19 | Small domain-adaptation experiment rejected |
-| M20–M23 | Manual OCR GT, OCR comparison, parser/orientation ablations, frozen OCR test |
-| M24 | Temporal OCR, road fallback, fragments, reassociation, cluster consensus |
+| M15–M17 | Controlled detector benchmark and YOLO11n selection |
+| M18 | Human-reviewed real-road detector robustness audit |
+| M19 | Small domain-adaptation experiment tested and rejected |
+| M20–M23 | OCR ground truth, OCR comparison, parser/orientation studies and frozen OCR test |
+| M24 | Temporal OCR, road fallback, fragment corroboration and reassociation |
 | M25A–M25E | Frozen unseen-road automatic case study |
-| **M25F** | **next: Human GT** |
-| **M25G** | **next: Final end-to-end evaluation** |
-| **M26** | **planned: API, database and dashboard** |
-| **M27** | **planned: Final documentation, environment lockfiles and demo** |
+| **M26** | **FastAPI + React local application, job workflow, presentation video, recognition observability, upload hardening, profiling and final smoke testing** |
 
 ---
 
@@ -873,29 +990,73 @@ Do not use the original leaking split for final research claims.
 
 ### Completed
 
-- Leakage audit and source-safe split,
-- Detector comparison and tuning,
-- Vehicle-first road-video pipeline,
-- BoT-SORT tracking,
-- Quality-based crop selection,
-- EasyOCR vs PaddleOCR benchmark,
-- Indian registration parser,
-- Adaptive orientation rescue,
-- Road-only preprocessing fallback,
-- Real-road robustness audit,
-- Small domain-adaptation experiment,
-- Conservative track reassociation,
-- Temporal candidate voting,
-- Fragment corroboration,
-- Evidence-strength statuses,
-- Frozen unseen-video evaluation through M25E.
+The current AutoVue implementation includes:
 
-### Remaining
+- leakage-safe IURS-NPDS dataset splitting,
+- controlled YOLOv8n / YOLO11n / YOLO11s detector benchmarking,
+- YOLO11n selection for the final plate detector,
+- validation-based operating point selection,
+- vehicle-first detection,
+- BoT-SORT vehicle tracking,
+- quality-based plate-crop selection,
+- EasyOCR vs PaddleOCR evaluation,
+- PaddleOCR selection,
+- Indian registration-aware parsing,
+- adaptive orientation rescue,
+- road-only preprocessing fallback,
+- conservative track reassociation,
+- multi-frame temporal candidate voting,
+- fragment corroboration,
+- evidence-strength classification,
+- frozen unseen-road case study,
+- FastAPI application backend,
+- React + Vite dashboard,
+- MP4 video upload and validation,
+- serialized local analysis jobs,
+- pipeline progress and stage reporting,
+- canonical JSON results,
+- presentation-video generation,
+- original and processed video review,
+- Results and Evidence views,
+- completed-job selection and deletion,
+- recognition-result loading states,
+- recognition failure-stage diagnostics,
+- empty video rejection,
+- corrupt MP4 rejection,
+- 500 MB upload limit,
+- failed-upload workspace cleanup,
+- duplicate final-video rendering removal,
+- local performance profiling,
+- final local browser smoke testing.
 
-- **M25F** — Human ground truth,
-- **M25G** — Final end-to-end metrics,
-- **M26** — FastAPI + PostgreSQL + React application,
-- **M27** — Final documentation and reproducibility package.
+### Local Demo Status
+
+The current build has been validated locally with multiple road videos.
+
+The final smoke test confirmed:
+
+```text
+Frontend                → Online
+FastAPI API            → Online
+Video upload          → Working
+Analysis jobs          → Working
+Results API            -> Working
+Presentation video    → Working
+Recognition results   → Working
+Evidence states      → Working
+Job switching         -> Working
+Invalid upload handling -> Working
+```
+
+The current stable version is treated as **AutoVue Local Demo Build**.
+
+### Evaluation Boundary
+
+The detector benchmark and static OCR evaluation are completed and reported separately.
+
+The road-video evidence states are **system outputs** and must not be interpreted as ground-truth accuracy.
+
+A full human-annotated road-video ground-truth evaluation is still required before reporting a final end-to-end ANPR accuracy.
 
 ---
 
@@ -931,7 +1092,7 @@ Its contribution is the **system design and experimental methodology**, includin
 - Conservative reassociation intentionally misses some possible merges,
 - Clusters are not guaranteed unique physical vehicles,
 - Alternative trackers were not benchmarked,
-- API/database/dashboard are planned, not completed.
+- The current analysis worker runs inside the FastAPI process, so restarting the API during an active job can interrupt that job.
 
 ---
 
@@ -953,43 +1114,140 @@ Final end-to-end road-video ANPR accuracy will be reported only after the planne
 
 ---
 
-## Planned Product Layer
+## Local Application Layer
 
-```mermaid
-flowchart LR
-    A[React Dashboard] <-->|REST / JSON| B[FastAPI]
-    B --> C[Inference Worker]
-    C --> D[YOLO + BoT-SORT + OCR]
-    B --> E[(PostgreSQL)]
-    D --> F[Evidence / Crop Storage]
-    E --> G[Human Review + Metrics]
-```
+The product layer described here is implemented and working locally.
 
-Example future API:
+### Backend — FastAPI
 
-```text
-POST /videos
-GET  /jobs/{job_id}
-GET  /results
-GET  /results/{id}
-GET  /clusters/{id}
-POST /reviews/{id}
-GET  /metrics
-GET  /health
-```
+FastAPI exposes the AutoVue workflow through endpoints for:
 
-The product goal is to expose both the result and its supporting evidence:
+- uploading MP4 videos,
+- listing analysis jobs,
+- retrieving a job,
+- starting analysis,
+- retrieving canonical results,
+- accessing generated media,
+- deleting completed jobs.
+
+Each product job is stored in its own workspace under:
 
 ```text
-DL10CY1530
-VERIFIED_FULL
-
-complete-support frames : 3
-fragment-support frames : 1
-OCR confidence          : ...
-evidence crops          : ...
-review state            : ...
+app_data/jobs/<job_id>/
 ```
+
+A job manifest tracks fields such as:
+
+```text
+job_id
+status
+progress
+message
+original_filename
+size_bytes
+created_at
+updated_at
+error
+```
+
+The current job states are:
+
+```text
+UPLOADED
+QUEUED
+DETECTING_TRACKING
+OCR_PROCESSING
+TEMPORAL_CONSENSUS
+RENDERING
+COMPLETED
+FAILED
+```
+
+### Frontend — React + Vite
+
+The current dashboard provides:
+
+```text
+Overview
+Analyze
+Results
+Evidence
+Analytics
+System
+```
+
+The Analyze workspace supports video upload, job selection,
+pipeline progress, original footage, AutoVue presentation video,
+recognition results and evidence review.
+
+### Recognition observability
+
+When a valid final plate cannot be produced, AutoVue does not
+invent a registration number.
+
+The dashboard distinguishes between:
+
+```text
+No plate detection
+Plate detected — OCR unresolved
+OCR read — format unverified
+Temporal evidence insufficient
+```
+
+This makes localization, OCR, parser and temporal-evidence
+failure modes visible to the user.
+
+### Upload validation
+
+The upload endpoint:
+
+- accepts MP4 input,
+- enforces a 500 MB upload limit,
+- rejects empty videos,
+- verifies that the MP4 can be opened,
+- verifies that at least one frame can be decoded,
+- removes the temporary job workspace when validation fails.
+
+### Generated outputs
+
+A successful analysis can produce artifacts such as:
+
+```text
+canonical_result.json
+metadata/
+crops/
+video/tracking.mp4
+video/presentation.mp4
+logs/analysis.log
+```
+
+The dashboard consumes the canonical result and presentation
+video rather than recomputing recognition in the browser.
+
+### Performance work
+
+Profiling showed that plate detection inside vehicle ROIs is the
+largest tracking-stage compute cost in the current pipeline.
+
+A multi-ROI batching experiment improved runtime, but changed
+downstream crops and recognized candidates. Because correctness
+could not be established without ground truth, that optimization
+was deliberately not adopted.
+
+A safe optimization was retained instead: AutoVue no longer
+encodes an unnecessary duplicate final analyzed video.
+
+### Current worker limitation
+
+Analysis currently runs in an in-process background worker tied
+to the FastAPI process.
+
+The API process should therefore not be restarted while an
+analysis job is running.
+
+This limitation does not affect the current local demo workflow,
+but the present implementation is not claimed to be a
+production-grade distributed job system.
 
 ---
 
