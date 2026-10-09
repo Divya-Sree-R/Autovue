@@ -140,7 +140,7 @@ It adapts the research problem toward:
 
 AutoVue now has two connected layers:
 
-1. A frozen research/recognition pipeline, and
+1. A recognition pipeline, and
 2. A local application layer built with FastAPI and React.
 
 ```mermaid
