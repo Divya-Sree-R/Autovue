@@ -213,6 +213,10 @@ function AnalyzePage() {
     null
   );
 
+  const [resultsLoading, setResultsLoading] =
+    useState(false);
+
+
   const [uploading, setUploading] =
     useState(false);
 
@@ -343,7 +347,7 @@ function AnalyzePage() {
         () => {
           void refreshJobs();
         },
-        2000
+        1000
       );
 
 
@@ -361,40 +365,89 @@ function AnalyzePage() {
 
   // -------------------------------------------------------
   // Load canonical results after completion
+  // Retry briefly because COMPLETED status and the result
+  // request can become visible to the UI almost together.
   // -------------------------------------------------------
 
   useEffect(() => {
 
     let cancelled = false;
 
+    let retryTimer:
+      number | null = null;
+
+    let attempts = 0;
+
 
     if (
       selectedJob?.status
       !== "COMPLETED"
     ) {
+
+      setResultsLoading(
+        false
+      );
+
       return () => {
         cancelled = true;
       };
     }
 
 
-    getJobResults(
-      selectedJob.job_id
-    )
-      .then((data) => {
+    async function loadResults() {
 
-        if (!cancelled) {
-          setResults(
-            data
+      if (
+        cancelled
+        || !selectedJob
+      ) {
+        return;
+      }
+
+
+      setResultsLoading(
+        true
+      );
+
+
+      try {
+
+        const data =
+          await getJobResults(
+            selectedJob.job_id
           );
+
+
+        if (cancelled) {
+          return;
         }
 
-      })
-      .catch((err) => {
 
-        if (!cancelled) {
+        setResults(
+          data
+        );
 
-          setResults(null);
+        setResultError(
+          null
+        );
+
+        setResultsLoading(
+          false
+        );
+
+      } catch (err) {
+
+        if (cancelled) {
+          return;
+        }
+
+
+        attempts += 1;
+
+
+        // Avoid showing an error during a normal
+        // short hand-off from worker completion
+        // to canonical-result availability.
+        if (attempts >= 5) {
 
           setResultError(
             err instanceof Error
@@ -404,13 +457,41 @@ function AnalyzePage() {
                   + "analysis results."
                 )
           );
+
+          setResultsLoading(
+            false
+          );
+
+          return;
         }
 
-      });
+
+        retryTimer =
+          window.setTimeout(
+            () => {
+              void loadResults();
+            },
+            1000
+          );
+      }
+    }
+
+
+    void loadResults();
 
 
     return () => {
+
       cancelled = true;
+
+      if (
+        retryTimer !== null
+      ) {
+
+        window.clearTimeout(
+          retryTimer
+        );
+      }
     };
 
   }, [
@@ -450,6 +531,76 @@ function AnalyzePage() {
         !== null
     )
     ?? [];
+
+
+
+  const recognitionPlaceholder = (() => {
+
+    if (
+      selectedJob?.status
+      === "COMPLETED"
+    ) {
+
+      return {
+        title:
+          resultsLoading
+            ? "Loading recognition results"
+            : "Preparing recognition results",
+
+        message:
+          "Analysis is complete. AutoVue is loading "
+          + "the canonical plate evidence.",
+      };
+    }
+
+
+    if (
+      selectedJob
+      && RUNNING_STATUSES.has(
+        selectedJob.status
+      )
+    ) {
+
+      return {
+        title:
+          "Analysis in progress",
+
+        message:
+          selectedJob.message
+          || (
+            "AutoVue is processing the "
+            + "uploaded road video."
+          ),
+      };
+    }
+
+
+    if (
+      selectedJob?.status
+      === "UPLOADED"
+    ) {
+
+      return {
+        title:
+          "Ready to analyze",
+
+        message:
+          "Start analysis to detect vehicles, "
+          + "localize plates and build "
+          + "temporal recognition evidence.",
+      };
+    }
+
+
+    return {
+      title:
+        "Waiting for video",
+
+      message:
+        "Upload or select an analysis job "
+        + "to view recognition results.",
+    };
+  })();
 
 
   const primaryResult =
@@ -1430,12 +1581,17 @@ function AnalyzePage() {
               <div className="recognition-empty">
 
                 <strong>
-                  Waiting for analysis
+                  {
+                    recognitionPlaceholder
+                      .title
+                  }
                 </strong>
 
                 <span>
-                  Recognized plate candidates and
-                  evidence states will appear here.
+                  {
+                    recognitionPlaceholder
+                      .message
+                  }
                 </span>
 
               </div>
