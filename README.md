@@ -64,7 +64,7 @@ Road Video
 
 ### Current Build Status
 
-> **Local Demo Ready**
+> **Demo Ready**
 
 The completed local build includes FastAPI job APIs, a React + Vite dashboard, MP4 upload and validation, serialized analysis jobs, progress tracking, canonical JSON results, presentation-video generation, results/evidence views, recognition diagnostics, completed-job browsing, and safe deletion.
 
@@ -81,7 +81,7 @@ When no final plate can be selected, the dashboard distinguishes between **No pl
 
 A complete local demo has been recorded as **`AuoVue.mp4`**.
 
-[▶ Watch AutoVue Demo](https://github.com/Divya-Sree-R/Autovue/releases/tag/v0.1.0-demo)
+[Watch AutoVue Demo](https://github.com/Divya-Sree-R/Autovue/releases/tag/v0.1.0-demo)
 
 The demo shows video upload, analysis progress, original and processed video playback, recognition results, temporal evidence, recognition diagnostics, and switching between completed analyses.
 
@@ -140,8 +140,8 @@ It adapts the research problem toward:
 
 AutoVue now has two connected layers:
 
-1. a frozen research/recognition pipeline, and
-2. a local application layer built with FastAPI and React.
+1. A frozen research/recognition pipeline, and
+2. A local application layer built with FastAPI and React.
 
 ```mermaid
 flowchart TD
@@ -992,42 +992,42 @@ The current analysis worker runs inside the FastAPI process, so an API restart c
 
 The current AutoVue implementation includes:
 
-- leakage-safe IURS-NPDS dataset splitting,
-- controlled YOLOv8n / YOLO11n / YOLO11s detector benchmarking,
+- Leakage-safe IURS-NPDS dataset splitting,
+- Controlled YOLOv8n / YOLO11n / YOLO11s detector benchmarking,
 - YOLO11n selection for the final plate detector,
-- validation-based operating point selection,
-- vehicle-first detection,
+- Validation-based operating point selection,
+- Vehicle-first detection,
 - BoT-SORT vehicle tracking,
-- quality-based plate-crop selection,
+- Quality-based plate-crop selection,
 - EasyOCR vs PaddleOCR evaluation,
 - PaddleOCR selection,
 - Indian registration-aware parsing,
-- adaptive orientation rescue,
-- road-only preprocessing fallback,
-- conservative track reassociation,
-- multi-frame temporal candidate voting,
-- fragment corroboration,
-- evidence-strength classification,
-- frozen unseen-road case study,
+- Adaptive orientation rescue,
+- Road-only preprocessing fallback,
+- Conservative track reassociation,
+- Multi-frame temporal candidate voting,
+- Fragment corroboration,
+- Evidence-strength classification,
+- Frozen unseen-road case study,
 - FastAPI application backend,
 - React + Vite dashboard,
 - MP4 video upload and validation,
-- serialized local analysis jobs,
-- pipeline progress and stage reporting,
-- canonical JSON results,
-- presentation-video generation,
-- original and processed video review,
+- Serialized local analysis jobs,
+- Pipeline progress and stage reporting,
+- Canonical JSON results,
+- Presentation-video generation,
+- Original and processed video review,
 - Results and Evidence views,
-- completed-job selection and deletion,
-- recognition-result loading states,
-- recognition failure-stage diagnostics,
-- empty video rejection,
-- corrupt MP4 rejection,
+- Completed-job selection and deletion,
+- Recognition-result loading states,
+- Recognition failure-stage diagnostics,
+- Empty video rejection,
+- Corrupt MP4 rejection,
 - 500 MB upload limit,
-- failed-upload workspace cleanup,
-- duplicate final-video rendering removal,
-- local performance profiling,
-- final local browser smoke testing.
+- Failed-upload workspace cleanup,
+- Duplicate final-video rendering removal,
+- Local performance profiling,
+- Final local browser smoke testing.
 
 ### Local Demo Status
 
@@ -1122,13 +1122,13 @@ The product layer described here is implemented and working locally.
 
 FastAPI exposes the AutoVue workflow through endpoints for:
 
-- uploading MP4 videos,
-- listing analysis jobs,
-- retrieving a job,
-- starting analysis,
-- retrieving canonical results,
-- accessing generated media,
-- deleting completed jobs.
+- Uploading MP4 videos,
+- Listing analysis jobs,
+- Retrieving a job,
+- Starting analysis,
+- Retrieving canonical results,
+- Accessing generated media,
+- Deleting completed jobs.
 
 Each product job is stored in its own workspace under:
 
@@ -1201,12 +1201,12 @@ failure modes visible to the user.
 
 The upload endpoint:
 
-- accepts MP4 input,
-- enforces a 500 MB upload limit,
-- rejects empty videos,
-- verifies that the MP4 can be opened,
-- verifies that at least one frame can be decoded,
-- removes the temporary job workspace when validation fails.
+- Accepts MP4 input,
+- Enforces a 500 MB upload limit,
+- Rejects empty videos,
+- Verifies that the MP4 can be opened,
+- Verifies that at least one frame can be decoded,
+- Removes the temporary job workspace when validation fails.
 
 ### Generated outputs
 
