@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 import json
+import shutil
 
 
 from app.backend.config import PROJECT_ROOT
@@ -231,4 +232,47 @@ def job_input_path(
         / job_id
         / "input"
         / "original.mp4"
+    )
+
+
+
+def delete_job_files(
+    job_id: str,
+) -> None:
+    """
+    Permanently delete one AutoVue job workspace.
+
+    load_job() first ensures that only a real manifest-backed
+    product job can be deleted. The frozen m25_reference
+    directory has no product manifest and therefore cannot
+    be deleted through this function.
+    """
+
+    load_job(
+        job_id
+    )
+
+    jobs_root = (
+        JOBS_ROOT
+        .resolve()
+    )
+
+    job_dir = (
+        JOBS_ROOT
+        / job_id
+    ).resolve()
+
+    # Safety: deletion must remain directly inside JOBS_ROOT.
+    if job_dir.parent != jobs_root:
+        raise ValueError(
+            "Invalid job workspace."
+        )
+
+    if not job_dir.exists():
+        raise FileNotFoundError(
+            job_id
+        )
+
+    shutil.rmtree(
+        job_dir
     )

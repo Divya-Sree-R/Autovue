@@ -13,6 +13,7 @@ from app.backend.services.jobs import (
     ALLOWED_VIDEO_SUFFIXES,
     MAX_UPLOAD_BYTES,
     create_job_manifest,
+    delete_job_files,
     job_input_path,
     list_jobs,
     load_job,
@@ -22,6 +23,7 @@ from app.backend.services.jobs import (
 from app.backend.worker.analysis import (
     InvalidJobStateError,
     WorkerBusyError,
+    get_active_job_id,
     start_analysis_job,
 )
 
@@ -51,6 +53,76 @@ def get_job(
             status_code=404,
             detail="Job not found.",
         )
+
+
+ACTIVE_JOB_STATUSES = {
+    "QUEUED",
+    "DETECTING_TRACKING",
+    "OCR_PROCESSING",
+    "TEMPORAL_CONSENSUS",
+    "RENDERING",
+}
+
+
+@router.delete(
+    "/{job_id}"
+)
+def delete_job(
+    job_id: str,
+):
+    try:
+        manifest = load_job(
+            job_id
+        )
+
+    except FileNotFoundError:
+        raise HTTPException(
+            status_code=404,
+            detail="Job not found.",
+        )
+
+
+    if (
+        manifest.get("status")
+        in ACTIVE_JOB_STATUSES
+        or get_active_job_id()
+        == job_id
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "A running analysis cannot "
+                "be deleted. Wait for it to "
+                "finish or fail first."
+            ),
+        )
+
+
+    try:
+        delete_job_files(
+            job_id
+        )
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        )
+
+    except FileNotFoundError:
+        raise HTTPException(
+            status_code=404,
+            detail="Job not found.",
+        )
+
+
+    return {
+        "job_id":
+            job_id,
+
+        "deleted":
+            True,
+    }
 
 
 @router.post(
