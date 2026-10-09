@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import cv2
+
 from fastapi import (
     APIRouter,
     File,
@@ -228,15 +230,66 @@ async def create_job(
                     chunk
                 )
 
-    except Exception:
-        output_path.unlink(
-            missing_ok=True
+        if size_bytes == 0:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Uploaded video is empty."
+                ),
+            )
+
+
+        capture = cv2.VideoCapture(
+            str(output_path)
         )
+
+        try:
+            if not capture.isOpened():
+                raise HTTPException(
+                    status_code=422,
+                    detail=(
+                        "Uploaded MP4 could not "
+                        "be opened as a video."
+                    ),
+                )
+
+
+            readable, frame = (
+                capture.read()
+            )
+
+            if (
+                not readable
+                or frame is None
+            ):
+                raise HTTPException(
+                    status_code=422,
+                    detail=(
+                        "Uploaded MP4 contains "
+                        "no readable video frames."
+                    ),
+                )
+
+        finally:
+            capture.release()
+
+
+    except Exception:
+        try:
+            delete_job_files(
+                manifest["job_id"]
+            )
+
+        except Exception:
+            output_path.unlink(
+                missing_ok=True
+            )
 
         raise
 
     finally:
         await file.close()
+
 
     manifest["size_bytes"] = (
         size_bytes
