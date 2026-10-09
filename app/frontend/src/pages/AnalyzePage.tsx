@@ -603,6 +603,107 @@ function AnalyzePage() {
   })();
 
 
+  const recognitionDiagnostic = (() => {
+
+    if (
+      !results
+      || recognized.length > 0
+    ) {
+      return null;
+    }
+
+
+    const observations =
+      results.clusters.reduce(
+        (all, cluster) => [
+          ...all,
+          ...cluster.observations,
+        ],
+        [] as AutoVueResult["clusters"][number]["observations"]
+      );
+
+
+    const hasPlateCrops =
+      results.summary.selected_ocr_crops
+      > 0;
+
+
+    const hasOcrText =
+      observations.some(
+        (observation) => {
+
+          const raw =
+            observation.final_raw
+            ?? observation.raw_0deg;
+
+          return (
+            raw !== null
+            && raw.trim().length > 0
+          );
+        }
+      );
+
+
+    const hasParserValidObservation =
+      observations.some(
+        (observation) =>
+          observation.final_valid_plate
+      );
+
+
+    if (!hasPlateCrops) {
+
+      return {
+        title:
+          "No plate detection",
+
+        message:
+          "AutoVue did not retain a usable "
+          + "number-plate crop from this video.",
+      };
+    }
+
+
+    if (!hasOcrText) {
+
+      return {
+        title:
+          "Plate detected — OCR unresolved",
+
+        message:
+          "Plate regions were detected, but OCR "
+          + "could not recover readable text.",
+      };
+    }
+
+
+    if (!hasParserValidObservation) {
+
+      return {
+        title:
+          "OCR read — format unverified",
+
+        message:
+          "OCR recovered text, but it did not "
+          + "match a valid Indian registration "
+          + "format. AutoVue does not fabricate "
+          + "a plate number.",
+      };
+    }
+
+
+    return {
+      title:
+        "Temporal evidence insufficient",
+
+      message:
+        "Parser-valid observations exist, but "
+        + "multi-frame evidence was not strong "
+        + "enough to select a final candidate.",
+    };
+  })();
+
+
   const primaryResult =
     recognized.find(
       (cluster) =>
@@ -1665,6 +1766,30 @@ function AnalyzePage() {
                   </div>
 
                 </div>
+
+
+                {
+                  recognitionDiagnostic
+                  && (
+                    <div className="recognition-empty">
+
+                      <strong>
+                        {
+                          recognitionDiagnostic
+                            .title
+                        }
+                      </strong>
+
+                      <span>
+                        {
+                          recognitionDiagnostic
+                            .message
+                        }
+                      </span>
+
+                    </div>
+                  )
+                }
 
 
                 {primaryResult && (
