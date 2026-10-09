@@ -445,7 +445,7 @@ def _run_pipeline(
             progress=88,
             message=(
                 "Building canonical results "
-                "and rendering analyzed video."
+                "and rendering dashboard video."
             ),
         )
 
@@ -453,7 +453,7 @@ def _run_pipeline(
             job_id=job_id,
             stage_name=(
                 "Canonical result and "
-                "analyzed video"
+                "dashboard video"
             ),
             command=[
                 str(MAIN_PYTHON),
@@ -469,10 +469,10 @@ def _run_pipeline(
             / "canonical_result.json"
         )
 
-        analyzed = (
+        presentation = (
             job_dir
             / "video"
-            / "analyzed.mp4"
+            / "presentation.mp4"
         )
 
         if not canonical.exists():
@@ -482,10 +482,10 @@ def _run_pipeline(
                 "is missing."
             )
 
-        if not analyzed.exists():
+        if not presentation.exists():
             raise RuntimeError(
                 "Pipeline finished but "
-                "analyzed.mp4 is missing."
+                "presentation.mp4 is missing."
             )
 
         _update_job(

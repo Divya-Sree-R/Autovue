@@ -6,9 +6,6 @@ import shutil
 import tempfile
 from pathlib import Path
 
-from autovue.renderer import (
-    render_analysis_video,
-)
 from autovue.presentation_renderer import (
     render_presentation_video,
 )
@@ -149,72 +146,6 @@ def build_canonical_result(
     return output_path
 
 
-def render_job_video(
-    *,
-    job_dir: Path,
-    result_json: Path,
-) -> Path:
-    """
-    Render browser-compatible analyzed video using the
-    existing validated AutoVue renderer.
-    """
-
-    job_dir = (
-        job_dir
-        .expanduser()
-        .resolve()
-    )
-
-    video_dir = (
-        job_dir
-        / "video"
-    )
-
-    tracking_video = (
-        video_dir
-        / "tracking.mp4"
-    )
-
-    analyzed_video = (
-        video_dir
-        / "analyzed.mp4"
-    )
-
-    if not tracking_video.exists():
-        raise FileNotFoundError(
-            tracking_video
-        )
-
-    render_analysis_video(
-        input_video=tracking_video,
-        result_json=result_json,
-        output_video=analyzed_video,
-    )
-
-    if not analyzed_video.exists():
-        raise RuntimeError(
-            "Renderer completed but analyzed.mp4 "
-            "was not created."
-        )
-
-    raw_video = (
-        video_dir
-        / "autovue_result_raw.mp4"
-    )
-
-    # Keep the job workspace clean after a successful
-    # browser-compatible render.
-    if raw_video.exists():
-        raw_video.unlink()
-
-    print(
-        "Analyzed video:",
-        analyzed_video,
-    )
-
-    return analyzed_video
-
-
 def render_job_presentation(
     *,
     job_dir: Path,
@@ -315,13 +246,6 @@ def finalize_job(
         )
     )
 
-    analyzed = (
-        render_job_video(
-            job_dir=job_dir,
-            result_json=canonical,
-        )
-    )
-
     presentation = (
         render_job_presentation(
             job_dir=job_dir,
@@ -339,9 +263,6 @@ def finalize_job(
         "canonical_result":
             canonical,
 
-        "analyzed_video":
-            analyzed,
-
         "presentation_video":
             presentation,
     }
@@ -352,7 +273,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description=(
             "Build canonical AutoVue result and "
-            "final analyzed video for a product job."
+            "dashboard presentation video for a product job."
         )
     )
 

@@ -269,17 +269,37 @@ def job_tracking_video(
 def job_analyzed_video(
     job_id: str,
 ):
+    """
+    Backward-compatible analyzed-video endpoint.
+
+    Older jobs may contain analyzed.mp4.
+    Optimized product jobs generate only presentation.mp4.
+    """
 
     job_dir = _job_dir(
         job_id
     )
 
-    path = _require_file(
+    analyzed = (
         job_dir
         / "video"
-        / "analyzed.mp4",
-        "Analyzed AutoVue video",
+        / "analyzed.mp4"
     )
+
+    presentation = (
+        job_dir
+        / "video"
+        / "presentation.mp4"
+    )
+
+    if analyzed.exists():
+        path = analyzed
+
+    else:
+        path = _require_file(
+            presentation,
+            "Analyzed AutoVue video",
+        )
 
     return FileResponse(
         path,
