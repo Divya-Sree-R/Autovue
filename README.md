@@ -254,10 +254,10 @@ YOLO11s improved strict localization by only about **0.65 percentage points mAP@
 ### Main benchmark setup
 
 - 50 epochs
-- image size: 640
-- batch size: 8
-- seed: 42
-- pretrained initialization
+- Image size: 640
+- Batch size: 8
+- Seed: 42
+- Pretrained initialization
 - GPU: NVIDIA RTX 4050 Laptop GPU
 - Ultralytics `optimizer=auto` selected MuSGD (`lr=0.01`, `momentum=0.9`) for the main benchmark
 
