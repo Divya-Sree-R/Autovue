@@ -43,6 +43,9 @@ export const mediaUrls = {
 
   analyzed:
     `${API_BASE}/api/reference/video/analyzed`,
+
+  presentation:
+    `${API_BASE}/api/reference/video/presentation`,
 };
 
 export function cropUrl(filename: string) {
@@ -140,4 +143,122 @@ export async function uploadVideo(
   }
 
   return response.json();
+}
+
+
+async function apiErrorMessage(
+  response: Response,
+  fallback: string
+): Promise<string> {
+  try {
+    const data = await response.json();
+
+    if (
+      data &&
+      typeof data.detail === "string"
+    ) {
+      return data.detail;
+    }
+  } catch {
+    // Ignore non-JSON error bodies.
+  }
+
+  return fallback;
+}
+
+
+export async function runJob(
+  jobId: string
+): Promise<AnalysisJob> {
+
+  const response = await fetch(
+    `${API_BASE}/api/jobs/${jobId}/run`,
+    {
+      method: "POST",
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      await apiErrorMessage(
+        response,
+        `Could not start analysis: ${response.status}`
+      )
+    );
+  }
+
+  return response.json();
+}
+
+
+export async function getJobResults(
+  jobId: string
+): Promise<AutoVueResult> {
+
+  const response = await fetch(
+    `${API_BASE}/api/jobs/${jobId}/results`
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      await apiErrorMessage(
+        response,
+        `Could not load job results: ${response.status}`
+      )
+    );
+  }
+
+  return response.json();
+}
+
+
+export async function getJobCluster(
+  jobId: string,
+  clusterId: number
+): Promise<ClusterResult> {
+
+  const response = await fetch(
+    `${API_BASE}/api/jobs/${jobId}/clusters/${clusterId}`
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      await apiErrorMessage(
+        response,
+        `Could not load cluster ${clusterId}`
+      )
+    );
+  }
+
+  return response.json();
+}
+
+
+export function jobMediaUrls(
+  jobId: string
+) {
+  return {
+    original:
+      `${API_BASE}/api/jobs/${jobId}/video/original`,
+
+    tracking:
+      `${API_BASE}/api/jobs/${jobId}/video/tracking`,
+
+    analyzed:
+      `${API_BASE}/api/jobs/${jobId}/video/analyzed`,
+
+    presentation:
+      `${API_BASE}/api/jobs/${jobId}/video/presentation`,
+  };
+}
+
+
+export function jobCropUrl(
+  jobId: string,
+  filename: string
+) {
+  return (
+    `${API_BASE}/api/jobs/${jobId}/crops/` +
+    encodeURIComponent(filename)
+  );
 }

@@ -9,6 +9,9 @@ from app.backend.api.reference import (
 from app.backend.api.jobs import (
     router as jobs_router,
 )
+from app.backend.api.job_artifacts import (
+    router as job_artifacts_router,
+)
 
 
 app = FastAPI(
@@ -61,4 +64,8 @@ app.include_router(
 
 app.include_router(
     jobs_router
+)
+
+app.include_router(
+    job_artifacts_router
 )

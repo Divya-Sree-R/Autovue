@@ -291,7 +291,7 @@ function OverviewPage() {
 
               <video
                 ref={analyzedRef}
-                src={mediaUrls.analyzed}
+                src={mediaUrls.presentation}
                 muted
                 preload="metadata"
               />
@@ -299,6 +299,101 @@ function OverviewPage() {
             </article>
 
           </div>
+
+
+          {selectedCluster && (
+
+            <div className="video-intelligence-strip">
+
+              <div className="video-intelligence-item">
+
+                <span>
+                  Selected plate
+                </span>
+
+                <strong className="telemetry-plate">
+                  {
+                    selectedCluster
+                      .final_candidate
+                    ?? "No candidate"
+                  }
+                </strong>
+
+              </div>
+
+
+              <div className="video-intelligence-item">
+
+                <span>
+                  Evidence status
+                </span>
+
+                <strong>
+                  {
+                    selectedCluster.status
+                      .replaceAll(
+                        "_",
+                        " "
+                      )
+                  }
+                </strong>
+
+              </div>
+
+
+              <div className="video-intelligence-item">
+
+                <span>
+                  Full-frame support
+                </span>
+
+                <strong>
+                  {
+                    selectedCluster
+                      .full_frame_support
+                  }
+                  {" frames"}
+                </strong>
+
+              </div>
+
+
+              <div className="video-intelligence-item">
+
+                <span>
+                  Fragment support
+                </span>
+
+                <strong>
+                  {
+                    selectedCluster
+                      .fragment_support_frames
+                  }
+                  {" frames"}
+                </strong>
+
+              </div>
+
+
+              <div className="video-intelligence-item">
+
+                <span>
+                  OCR observations
+                </span>
+
+                <strong>
+                  {
+                    selectedCluster
+                      .observations
+                      .length
+                  }
+                </strong>
+
+              </div>
+
+            </div>
+
+          )}
 
         </section>
 
