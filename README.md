@@ -81,7 +81,7 @@ When no final plate can be selected, the dashboard distinguishes between **No pl
 
 A complete local demo has been recorded as **`AuoVue.mp4`**.
 
-[▶ AutoVue Demo / GitHub Releases](https://github.com/Divya-Sree-R/Autovue/releases)
+[▶ Watch AutoVue Demo](https://github.com/Divya-Sree-R/Autovue/releases/tag/v0.1.0-demo)
 
 The demo shows video upload, analysis progress, original and processed video playback, recognition results, temporal evidence, recognition diagnostics, and switching between completed analyses.
 
