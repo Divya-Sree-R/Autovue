@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
+import os
 from pathlib import Path
 from typing import Any
 
@@ -152,6 +153,11 @@ def run_tracking(
     )
 
     module = _load_frozen_m25b()
+    # Relocate identical model assets only; frozen detection settings stay intact.
+    if os.environ.get("AUTOVUE_VEHICLE_MODEL_PATH"):
+        module.VEHICLE_MODEL = os.environ["AUTOVUE_VEHICLE_MODEL_PATH"]
+    if os.environ.get("AUTOVUE_PLATE_MODEL_PATH"):
+        module.PLATE_MODEL_PATH = Path(os.environ["AUTOVUE_PLATE_MODEL_PATH"])
 
     required_globals = (
         "INPUT_VIDEO",

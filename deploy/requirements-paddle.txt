@@ -1,0 +1,5 @@
+# Install paddlepaddle-gpu==3.2.1 from the official CUDA 12.6 index first.
+paddleocr==3.7.0
+paddlex[ocr-core]==3.7.2
+numpy==2.3.5
+opencv-contrib-python==4.10.0.84

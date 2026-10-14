@@ -9,6 +9,8 @@ from pathlib import Path
 import subprocess
 import threading
 from typing import Any
+from app.backend.config import MAIN_PYTHON, PADDLE_PYTHON
+from app.backend.services import runtime
 
 from app.backend.services.jobs import (
     job_input_path,
@@ -22,21 +24,6 @@ PROJECT_ROOT = (
     .resolve()
     .parents[3]
 )
-
-MAIN_PYTHON = (
-    PROJECT_ROOT
-    / ".venv"
-    / "bin"
-    / "python"
-)
-
-PADDLE_PYTHON = (
-    PROJECT_ROOT
-    / ".venv_paddleocr"
-    / "bin"
-    / "python"
-)
-
 
 ACTIVE_STATUSES = {
     "QUEUED",
@@ -132,6 +119,7 @@ def _update_job(
     save_job_manifest(
         manifest
     )
+    runtime.commit_storage()
 
     return manifest
 
@@ -552,7 +540,8 @@ def _run_pipeline(
 def start_analysis_job(
     job_id: str,
 ) -> dict[str, Any]:
-
+    if runtime.dispatch_analysis is not None:
+        return runtime.dispatch_analysis(job_id)
     manifest = load_job(
         job_id
     )

@@ -3,9 +3,12 @@ import type {
   ClusterResult,
 } from "../types/autovue";
 
-export const API_BASE =
+// Production serves React and the API from one origin. An explicit empty
+// VITE_API_BASE also opts into that layout during local deployment checks.
+export const API_BASE = (
   import.meta.env.VITE_API_BASE ??
-  "http://127.0.0.1:8000";
+  (import.meta.env.PROD ? "" : "http://127.0.0.1:8000")
+).replace(/\/+$/, "");
 
 export async function getReferenceResults(): Promise<AutoVueResult> {
   const response = await fetch(

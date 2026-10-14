@@ -1,0 +1,7 @@
+# Install torch/torchvision separately from the official CUDA 12.6 index.
+ultralytics==8.4.173
+numpy==2.5.2
+opencv-python==5.0.0.93
+scipy==1.18.1
+lap==0.5.13
+PyYAML==6.0.3

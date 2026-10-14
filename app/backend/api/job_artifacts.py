@@ -53,7 +53,8 @@ def _require_file(
     path: Path,
     label: str,
 ) -> Path:
-
+    if path.is_symlink():
+        raise HTTPException(status_code=404, detail=f"{label} is not available.")
     if not path.exists():
         raise HTTPException(
             status_code=404,

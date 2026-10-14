@@ -14,6 +14,7 @@ from app.backend.config import (
     FROZEN_OUTPUT_ROOT,
     ORIGINAL_VIDEO,
     TRACKING_VIDEO,
+    PRESENTATION_VIDEO,
 )
 
 
@@ -196,16 +197,7 @@ def plate_crop(
 )
 def reference_presentation_video():
 
-    presentation_path = (
-        Path(__file__)
-        .resolve()
-        .parents[3]
-        / "app_data"
-        / "jobs"
-        / "m25_reference"
-        / "video"
-        / "presentation.mp4"
-    )
+    presentation_path = PRESENTATION_VIDEO
 
     if not presentation_path.exists():
         raise HTTPException(

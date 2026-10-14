@@ -6,16 +6,10 @@ from typing import Any
 from uuid import uuid4
 import json
 import shutil
+import re
 
 
-from app.backend.config import PROJECT_ROOT
-
-
-JOBS_ROOT = (
-    PROJECT_ROOT
-    / "app_data"
-    / "jobs"
-)
+from app.backend.config import JOBS_ROOT
 
 MAX_UPLOAD_BYTES = (
     500 * 1024 * 1024
@@ -36,6 +30,14 @@ def _utc_now() -> str:
 def _manifest_path(
     job_id: str,
 ) -> Path:
+    if not re.fullmatch(r"[A-Za-z0-9_-]+", job_id):
+        raise FileNotFoundError(job_id)
+    workspace = JOBS_ROOT / job_id
+    if workspace.is_symlink() or workspace.resolve().parent != JOBS_ROOT.resolve():
+        raise FileNotFoundError(job_id)
+    path = workspace / "manifest.json"
+    if path.is_symlink():
+        raise FileNotFoundError(job_id)
     return (
         JOBS_ROOT
         / job_id
@@ -226,7 +228,7 @@ def list_jobs() -> list[dict[str, Any]]:
 def job_input_path(
     job_id: str,
 ) -> Path:
-
+    _manifest_path(job_id)
     return (
         JOBS_ROOT
         / job_id
