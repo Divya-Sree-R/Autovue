@@ -2,7 +2,11 @@
 
 The deployment branch is `deploy/modal-demo`. The existing React application and FastAPI API share one HTTPS origin. A CPU web function serves the compiled frontend, uploads, manifests, results, crops, and byte-range video playback. It dispatches inference to a separate T4 function with `spawn()`; YOLO11n, BoT-SORT, PaddleOCR, reassociation, temporal consensus, and rendering never run inside the web process. Modal supplies the deployed endpoint; keeping the workspace, application name, and function name stable preserves its URL. No custom domain purchase is required. See [Modal web function URLs](https://modal.com/docs/guide/webhook-urls).
 
-Deployment status: **blocked by Modal billing**. Both images built and both GPU environments passed dependency checks, but Modal rejected deployment with `Please add a payment method to use T4 GPU functions.` No public URL or public inference success is claimed. Local verification passed all ten saved M25 regression checks, 27 backend/storage checks, the TypeScript/Vite build, and an actual HTTP smoke test with a six-second road clip (upload, authentication, validation cleanup, SPA routes, and original-video range playback). Public inference and browser verification remain pending until the workspace has a payment method and metered usage approval.
+Deployment status: **Modal GPU deployment cancelled by the user**. No payment method, subscription, billing setup, or paid cloud resources are authorized. The existing deployment implementation is preserved for reference; do not run its deployment commands under the current instructions. The earlier build completed, but Modal refused publication because T4 functions require a payment method. No public URL or public inference success is claimed.
+
+Local verification passed all ten saved M25 regression checks, 27 backend/storage checks, and the TypeScript/Vite build. A new six-second MP4 was uploaded through the real local FastAPI API and processed on the actual WSL RTX 4050 using the unchanged YOLO11n, BoT-SORT, PaddleOCR, reassociation, temporal-consensus, and rendering stages. All 16 HTTP smoke checks passed, including canonical results, evidence crops, and original/presentation/analyzed video range responses. This is real inference, independent of the saved M25 regression data. See [no-payment alternatives](no-payment-deployment-options.md) before selecting a different platform.
+
+Five real Chromium UI checks also passed: completed-job selection, decoded presentation-video playback, Results rendering, Evidence navigation and decoded crops, and absence of browser runtime errors. Reports and screenshots are in ignored `app_data/deploy/evidence/local-*` artifacts.
 
 `deploy/modal_app.py` builds separate web and worker images. The worker keeps PyTorch/CUDA in its main Python environment and PaddleOCR/Paddle GPU in `/opt/paddle`; their dependencies and NumPy versions remain separate. The deployment copies the exact existing vehicle/plate weights and cached PP-OCRv5 detector/recognizer assets. It does not retrain, replace model weights, or change inference thresholds. Requirements are pinned in `deploy/requirements-{web,main,paddle}.txt`.
 
@@ -45,7 +49,7 @@ app_data/deploy/cli/bin/modal token new
 
 Existing authenticated sessions can reuse the ignored `.modal.toml`; do not commit or display its contents. The `autovue-demo-auth` Secret must contain both authentication environment variables. The initial deployment already created this Secret. Rotate it through the Modal dashboard when needed; do not put credentials in deployment source or shell command arguments.
 
-From the repository root, rebuild, verify/stage, test, and redeploy:
+The preserved deployment commands below are historical instructions. Modal deployment is currently unauthorized. Local build, verification, and tests remain authorized:
 
 ```bash
 export PATH="$HOME/.nvm/versions/node/v22.23.3/bin:$PATH"
@@ -85,4 +89,4 @@ As checked on 14 October 2026, Modal lists T4 compute at **$0.000164/second**, a
 
 Known demo limits are shared Basic credentials and shared job visibility; one inference job at a time; cold starts; a one-hour worker limit; no automatic retries; and serialization of complete web responses, so a slow upload or long video stream can delay other API requests. Jobs have no automatic retention period; use the existing UI/API deletion after analysis finishes. The 500 MB validation policy is preserved, but large transfers remain subject to network speed and Modal's web request limits. Costs stop for compute when idle, while retained storage remains persistent.
 
-The existing frontend lint check reports one effect-state error and one missing-effect-dependency warning in unchanged `AnalyzePage.tsx`. The production build passes. Frozen OCR requires CUDA, so local upload/API testing does not substitute for the public T4 inference test.
+The existing frontend lint check reports one effect-state error and one missing-effect-dependency warning in unchanged `AnalyzePage.tsx`. The production build passes. Frozen OCR requires CUDA. The sandbox itself hides CUDA devices; the actual WSL environment exposes the RTX 4050, and the local inference check ran outside that sandbox. This local validation does not claim a public cloud inference test.
