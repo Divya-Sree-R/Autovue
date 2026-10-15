@@ -6,6 +6,27 @@ The dedicated WSL userspace client proxies one HTTPS hostname to `http://127.0.0
 
 Public URL: **https://autovue-review.tail1ab5ad.ts.net**. The laptop owner explicitly approved public access and completed provider-side Funnel enablement on 15 October 2026. Real public upload, GPU inference, results, evidence, browser login, and processed video playback passed. The URL is stable while the node identity, device name, and tailnet name remain unchanged; it only serves the app while the laptop and its processes remain online.
 
+## Final review branch and file audit
+
+The final review branch is `deploy/tailscale-demo`, created from deployment commit `3446233` while preserving `deploy/modal-demo`. This verification run changes only this guide. It reuses the existing FastAPI application, production React build, CUDA environments, model assets, authentication, and approved Funnel configuration; no application rebuild, dependency installation, research experiment, or algorithm change was performed.
+
+The existing Tailscale implementation in `3446233` contains these reviewed deployment files:
+
+| Purpose | Exact files |
+| --- | --- |
+| Backend public configuration and safeguards | `app/backend/config.py`, `app/backend/main.py`, `app/backend/security.py` |
+| Local lifecycle, Funnel, installer, upload diagnostics | `deploy/local_app.py`, `deploy/tailscale_funnel.py`, `deploy/install_tailscale.py`, `deploy/check_upload_limits.py` |
+| Deployment checks | `tests/test_local_app_control.py`, `tests/test_funnel_control.py`, `tests/test_public_security.py` |
+| Deployment documentation | `docs/tailscale-deployment.md`, `docs/no-payment-deployment-options.md` |
+
+The only original uncommitted work is `src/detection/plate_detection_video.py` and `src/detection/vehicle_detection.py`. Both retain their recorded baseline SHA-256 hashes, respectively `630159d1162f1ff8fef9bde445261d03dd5a9cde092007714c371f4c6e07bdbe` and `c8382c5293d2db04647f81cf932b46748dc3856518ba723e8c5abbfa15142d54`. They are excluded from the deployment commit. Credentials, device keys, generated reports/screenshots, job videos, crops, and model weights remain ignored and are not added to Git.
+
+Fresh verification on 15 October 2026 completed public inference at 23:12 IST using new job `427002f4-d91c-40cf-a322-02dd42d18e76`. All 16 HTTP checks passed: authentication and cross-origin protection, unchanged React routes/assets, invalid-upload cleanup, a real new video upload, progress, RTX 4050 inference with separate PaddleOCR Python, canonical JSON, cluster/crop evidence, and all three video ranges. The worker completed in approximately 50 seconds. All 65 backend/security/controller checks and ten saved M25 baseline checks passed; both Python environments passed dependency checks. Reports are `app_data/funnel/final-public-smoke.json` and `final-public-network.json`.
+
+All eight fresh Chromium checks passed, including the served HTML, JavaScript, and CSS hashes against the existing build, login, actual public relay/TLS, completed-job playback, Results, and all five evidence crops. Its report and screenshots use `app_data/funnel/evidence/final-public-*`. The public relay is explicitly resolved from public DNS to avoid the laptop's private tailnet DNS; certificate verification remains enabled. A separate same-job Analyze `View` check confirmed the existing UI limitation described below; its failed-check proof is `final-public-analyze-view-observation.json`.
+
+A fresh stop/start test also passed: public HTTPS disconnected, port 8080 closed, and the new completed job remained on disk. Startup reused the saved approval and login. Public authentication, the new job's canonical results, and processed-video ranges then passed through TLS-verified relay `103.84.155.153`; see `app_data/funnel/final-restart-smoke.json`. The app and Funnel are left running for review.
+
 ## Files and private data
 
 `deploy/local_app.py` safely controls one authenticated loopback FastAPI process. It checks the recorded frozen baseline, existing model/cache assets, both CUDA environments, frontend build assets, and FFmpeg before starting. It sets the project import path explicitly and records the process identity, boot ID, UID, start time, session, and process group to avoid killing unrelated processes or a reused PID.
@@ -54,6 +75,8 @@ Stop public access, then the owned app and daemon:
 python3 deploy/tailscale_funnel.py stop
 ```
 
+For a deliberate restart, wait for running analysis to finish, run `stop`, and run `start` after stop exits successfully. The saved owner receipt, credentials, node identity, uploads, and completed jobs are reused; another authorization flag or login is unnecessary while the existing account session remains valid.
+
 Stop preserves credentials, node identity, uploads, results, and logs. If analysis is active, the public handler is disabled first and the app refuses to terminate until the job completes. Repeat stop after completion. `stop --force` is an explicit emergency action that can interrupt a running analysis; inspect its logs before restarting. Never stop WSL or close/reboot the laptop during a job.
 
 The laptop, WSL, FastAPI process, Tailscale daemon, and internet connection must remain running. Disable sleep manually for the review window if appropriate; this setup does not change Windows power settings or configure automatic startup at boot. Tailscale background Funnel configuration resumes on daemon restart, so use the stop script to disable its handler before stopping the daemon.
@@ -85,6 +108,8 @@ The real local upload boundary test accepted exactly 524,288,000 bytes (500 MiB)
 A valid 16 MiB public upload passed with HTTP 201 in 113.25 seconds, and its stored final-byte range returned HTTP 206. Recovery after the interrupted request also worked. A declared body of 504 MiB + 1 byte returned public HTTP 413 after sending only a bounded 256 KiB prefix, with no new workspace. The proxy may consume a bounded prefix before delivering an early rejection. Reports: `public-upload-16mib.json`, `public-upload-preflight.json`, and `public-upload-boundary-interrupted.json`.
 
 The measured 16 MiB transfer corresponds to approximately 0.14 MiB/s. Extrapolating that one measurement, 500 MiB would take about 59 minutes, exceeding the configured 30-minute upload receive timeout. This is an estimate, not a successful 500 MiB public test or a fixed published Funnel speed. Use small representative clips for college review; the nominal 500 MiB file policy is preserved, while full-size uploads remain unverified over this connection.
+
+An existing Analyze-page limitation was found during final browser review: selecting `View` again for the already-selected completed job clears its recognition preview without retriggering the result-loading effect. The separate Results and Evidence pages, results API, and processed video remain available. Use Results to inspect the completed job, or reload Analyze without reselecting the same job. The frontend source/build is preserved under the explicit no-rebuild requirement; this is a UI limitation, not an inference or tunnel success claim.
 
 Funnel is beta, with nonconfigurable bandwidth limits and no documented numerical upload-size guarantee. Public DNS can take up to ten minutes after first activation; a tailnet resolver may separately return the private Tailscale address. The application accepts up to 500 MiB MP4s, but that does not establish that every network or Funnel path can transfer that amount within the timeouts. Video seeking uses HTTP range requests. [Funnel requirements and limitations](https://tailscale.com/docs/features/tailscale-funnel).
 
