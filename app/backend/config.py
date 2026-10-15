@@ -57,3 +57,17 @@ REQUIRE_AUTH = os.environ.get("AUTOVUE_REQUIRE_AUTH", "").lower() in {
 }
 AUTH_USERNAME = os.environ.get("AUTOVUE_AUTH_USERNAME", "")
 AUTH_PASSWORD = os.environ.get("AUTOVUE_AUTH_PASSWORD", "")
+
+# Opt-in safeguards for exposing the laptop through a public HTTPS proxy.
+PUBLIC_MODE = os.environ.get("AUTOVUE_PUBLIC_MODE", "").lower() in {
+    "1", "true", "yes", "on"
+}
+PUBLIC_HOST = os.environ.get("AUTOVUE_PUBLIC_HOST", "").strip().lower()
+PUBLIC_ORIGIN = os.environ.get("AUTOVUE_PUBLIC_ORIGIN", "").strip().rstrip("/")
+LOCAL_HOSTS = [
+    host.strip().lower()
+    for host in os.environ.get(
+        "AUTOVUE_LOCAL_HOSTS", "127.0.0.1:8000,localhost:8000"
+    ).split(",")
+    if host.strip()
+]

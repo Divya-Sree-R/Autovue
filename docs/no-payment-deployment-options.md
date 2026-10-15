@@ -1,6 +1,6 @@
 # AutoVue: local verification and no-payment deployment options
 
-Status as of 14 October 2026: Modal GPU deployment is cancelled under the user's explicit no-card, no-billing, no-paid-services constraint. The deployment branch and its implementation remain preserved. No alternate platform has been selected, installed, or published. The options below are a feasibility assessment, not a claim of public deployment.
+Original assessment: 14 October 2026. Modal GPU deployment is cancelled under the user's explicit no-card, no-billing, no-paid-services constraint. The deployment branch and its implementation remain preserved. On 15 October the user selected free Tailscale Personal Funnel and explicitly granted laptop-owner permission. Authenticated public upload, real GPU inference, results, evidence, and browser video playback passed at https://autovue-review.tail1ab5ad.ts.net. See the [current Tailscale deployment guide](tailscale-deployment.md) for measured limitations and start/stop commands. The options below remain the original feasibility assessment.
 
 ## Verified local application
 

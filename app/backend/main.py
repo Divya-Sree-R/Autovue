@@ -49,10 +49,14 @@ def create_app() -> FastAPI:
         if not index.is_file() or index.is_symlink():
             raise RuntimeError("AUTOVUE_FRONTEND_DIST must contain a regular index.html build.")
     # Check before constructing the lazy middleware stack: deployment fails closed.
-    if config.REQUIRE_AUTH and not (config.AUTH_USERNAME and config.AUTH_PASSWORD):
+    if (config.REQUIRE_AUTH or config.PUBLIC_MODE) and not (config.AUTH_USERNAME and config.AUTH_PASSWORD):
         raise RuntimeError("AutoVue authentication is required but its secret is missing.")
     if bool(config.AUTH_USERNAME) != bool(config.AUTH_PASSWORD) or ":" in config.AUTH_USERNAME:
         raise RuntimeError("AutoVue authentication requires a valid username and password.")
+    if config.PUBLIC_MODE:
+        DemoAuthMiddleware.validate_public_settings(
+            config.PUBLIC_HOST, config.PUBLIC_ORIGIN, config.AUTH_PASSWORD, config.LOCAL_HOSTS
+        )
     application.add_middleware(
         CORSMiddleware,
         allow_origins=config.CORS_ORIGINS,
@@ -62,10 +66,14 @@ def create_app() -> FastAPI:
     )
     application.add_middleware(
         DemoAuthMiddleware,
-        required=config.REQUIRE_AUTH,
+        required=config.REQUIRE_AUTH or config.PUBLIC_MODE,
         username=config.AUTH_USERNAME,
         password=config.AUTH_PASSWORD,
         allowed_origins=config.CORS_ORIGINS,
+        public_mode=config.PUBLIC_MODE,
+        public_host=config.PUBLIC_HOST,
+        public_origin=config.PUBLIC_ORIGIN,
+        local_hosts=config.LOCAL_HOSTS,
     )
 
     @application.get("/")
